@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-firefox/
+public/tessdata/
+*.log
+.DS_Store
+.vite/
+*.local
+*.tsbuildinfo
+.idea/
+.vscode/

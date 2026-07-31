@@ -1,0 +1,291 @@
+import { OverlayManager } from './overlay/OverlayManager';
+import { mountSidebar, unmountSidebar, setSidebarExpanded } from './sidebar/index';
+import { eventBus } from '@utils/eventBus';
+import { logger } from '@utils/logger';
+import { browserMessaging } from '@compat/messaging';
+import { captureService } from '@services/CaptureService';
+import { preprocessingService } from '@services/PreprocessingService';
+import { ocrService } from '@services/OCRService';
+import { clipboardService } from '@services/ClipboardService';
+import { postProcessingService } from '@services/PostProcessingService';
+import { getErrorMessage, getErrorStack } from '@utils/logger';
+import { STORAGE_KEYS } from '@shared/constants';
+import { defaultSettings } from '@type/settings';
+import type { ExtensionSettings } from '@type/settings';
+import type { Region } from '@type/index';
+
+type PipelineState = 'idle' | 'selecting' | 'capturing' | 'preprocessing' | 'ocr_init' | 'ocr_recognizing' | 'postprocessing' | 'completed' | 'failed' | 'cancelled';
+
+const overlay = new OverlayManager();
+let sidebarVisible = false;
+let sidebarExpanded = false;
+let currentSettings: ExtensionSettings = defaultSettings;
+let pipelineState: PipelineState = 'idle';
+let pipelineLock = false;
+let disposed = false;
+const cleanupFns: (() => void)[] = [];
+
+function isExtensionContextValid(): boolean {
+  try {
+    return !!chrome.runtime?.id;
+  } catch {
+    return false;
+  }
+}
+
+async function loadSettings(): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    const stored = result[STORAGE_KEYS.SETTINGS] as ExtensionSettings | undefined;
+    currentSettings = stored ? { ...defaultSettings, ...stored } : { ...defaultSettings };
+  } catch (err) {
+    console.warn(`[QuickCopy] Failed to load settings in content script`, getErrorMessage(err));
+  }
+}
+
+function handleSettingsChanged(changes: { [key: string]: chrome.storage.StorageChange }, areaName: string): void {
+  if (areaName !== 'local') return;
+  const change = changes[STORAGE_KEYS.SETTINGS];
+  if (change?.newValue) {
+    currentSettings = { ...defaultSettings, ...(change.newValue as ExtensionSettings) };
+  }
+}
+
+void loadSettings();
+chrome.storage.onChanged.addListener(handleSettingsChanged);
+cleanupFns.push(() => chrome.storage.onChanged.removeListener(handleSettingsChanged));
+
+function setPipelineState(state: PipelineState): void {
+  pipelineState = state;
+  console.log(`[QuickCopy] State: ${state}`);
+  eventBus.emit('pipeline:stateChange', state);
+}
+
+function handleMessage(event: MessageEvent): void {
+  if (event.source !== window) return;
+  if (!event.data?.type) return;
+  const type = event.data.type as string;
+  if (type.startsWith('quickcopy:')) {
+    logger.debug('Window message received', { type });
+  }
+}
+
+window.addEventListener('message', handleMessage);
+cleanupFns.push(() => window.removeEventListener('message', handleMessage));
+
+async function handleRegionSelected(region: Region): Promise<void> {
+  if (disposed) return;
+  logger.info('Region selected', region);
+
+  try {
+    setPipelineState('capturing');
+    eventBus.emit('capture:started', undefined);
+
+    if (!isExtensionContextValid()) {
+      throw new Error('Extension context invalidated');
+    }
+
+    const captureStart = performance.now();
+    const captureResult = await captureService.captureRegion(region);
+    console.log(`[QuickCopy] Capture done in ${Math.round(performance.now() - captureStart)}ms`);
+
+    setPipelineState('preprocessing');
+    const preprocessStart = performance.now();
+    const preprocessed = await preprocessingService.preprocess(captureResult.dataUrl, 2);
+    console.log(`[QuickCopy] [5/10] Preprocessing complete ✓`, {
+      originalSize: `${preprocessed.width / 2}x${preprocessed.height / 2}`,
+      processedSize: `${preprocessed.width}x${preprocessed.height}`,
+      upscaleFactor: 2,
+      grayscaleApplied: true,
+      executionTimeMs: Math.round(performance.now() - preprocessStart),
+    });
+
+    setPipelineState('ocr_init');
+    const ocrStart = performance.now();
+    const ocrResult = await ocrService.recognize(preprocessed.dataUrl);
+    console.log(`[QuickCopy] OCR done in ${Math.round(performance.now() - ocrStart)}ms`);
+
+    setPipelineState('postprocessing');
+    console.log(`[QuickCopy] [8/10] Post-processing started`);
+    const postStart = performance.now();
+    eventBus.emit('postprocessing:started', undefined);
+    const cleanedResult = await postProcessingService.process(ocrResult);
+    console.log(`[QuickCopy] [8/10] Post-processing complete ✓`, {
+      textLength: cleanedResult.text.length,
+      repairCount: cleanedResult.repairCount,
+      executionTimeMs: Math.round(performance.now() - postStart),
+    });
+    eventBus.emit('postprocessing:completed', cleanedResult);
+
+    setPipelineState('completed');
+
+    if (currentSettings.autoCopy) {
+      console.log(`[QuickCopy] [9.5/10] Auto-copy enabled — copying to clipboard`);
+      const clipResult = await clipboardService.copy(cleanedResult.text);
+      if (clipResult) {
+        console.log(`[QuickCopy] [10/10] Auto-copied to clipboard ✓`);
+      } else {
+        console.warn(`[QuickCopy] [10/10] Auto-copy FAILED — user can copy from the panel`);
+      }
+    } else {
+      console.log(`[QuickCopy] [9.5/10] Auto-copy disabled — awaiting user copy in panel`);
+    }
+  } catch (error) {
+    const errMsg = getErrorMessage(error);
+    console.error(`[QuickCopy] Pipeline FAILED at ${pipelineState}`, {
+      message: errMsg,
+      stack: getErrorStack(error),
+      type: typeof error,
+    });
+    setPipelineState('failed');
+    eventBus.emit('status:update', { status: 'error', message: errMsg });
+    logger.error('Workflow failed', error);
+  } finally {
+    pipelineLock = false;
+  }
+}
+
+async function ensureSidebar(): Promise<void> {
+  if (sidebarVisible) return;
+  console.log(`[QuickCopy] Mounting sidebar...`);
+  await mountSidebar(closeSidebar);
+  sidebarVisible = true;
+  eventBus.emit('sidebar:opened', undefined);
+  console.log(`[QuickCopy] Sidebar mounted ✓`);
+}
+
+function closeSidebar(): void {
+  if (!sidebarVisible) return;
+  unmountSidebar();
+  sidebarVisible = false;
+  sidebarExpanded = false;
+  eventBus.emit('sidebar:closed', undefined);
+  console.log(`[QuickCopy] Sidebar closed ✓`);
+}
+
+function onSidebarExpandedChanged(e: Event): void {
+  sidebarExpanded = (e as CustomEvent<boolean>).detail === true;
+}
+
+window.addEventListener('quickcopy:sidebar:expanded-changed', onSidebarExpandedChanged);
+cleanupFns.push(() => window.removeEventListener('quickcopy:sidebar:expanded-changed', onSidebarExpandedChanged));
+
+async function beginSelection(clientX?: number, clientY?: number): Promise<void> {
+  if (pipelineLock) {
+    console.log(`[QuickCopy] Pipeline locked, ignoring selection`);
+    return;
+  }
+  if (pipelineState !== 'idle' && pipelineState !== 'completed' && pipelineState !== 'failed') {
+    console.log(`[QuickCopy] Pipeline busy (${pipelineState}), ignoring selection`);
+    return;
+  }
+  if (!isExtensionContextValid()) {
+    console.error(`[QuickCopy] Extension context invalidated, cannot begin selection`);
+    return;
+  }
+
+  pipelineLock = true;
+  setPipelineState('selecting');
+
+  try {
+    if (currentSettings.showPanel) {
+      await ensureSidebar();
+    } else {
+      console.log(`[QuickCopy] Panel auto-show disabled — copying silently`);
+    }
+    overlay.show({
+      onComplete: (region) => {
+        handleRegionSelected(region);
+      },
+      onCancel: () => {
+        setPipelineState('cancelled');
+        pipelineLock = false;
+        logger.debug('Selection cancelled');
+      },
+    });
+
+    if (clientX != null && clientY != null) {
+      overlay.startSelection(clientX, clientY);
+    }
+  } catch (err) {
+    console.error(`[QuickCopy] beginSelection failed`, err);
+    pipelineLock = false;
+    setPipelineState('idle');
+  }
+}
+
+const mousedownHandler = (e: MouseEvent) => {
+  if (e.button !== 0) return;
+  if (!e.ctrlKey && !e.metaKey) return;
+
+  console.log(`[QuickCopy] [1/10] CTRL detected ✓`);
+  e.preventDefault();
+  e.stopPropagation();
+
+  beginSelection(e.clientX, e.clientY);
+};
+
+document.addEventListener('mousedown', mousedownHandler, true);
+cleanupFns.push(() => document.removeEventListener('mousedown', mousedownHandler, true));
+
+const cleanupMessaging = browserMessaging.onMessage(async (message) => {
+  switch (message.type) {
+    case 'overlay:show': {
+      beginSelection();
+      return { success: true };
+    }
+    case 'overlay:hide': {
+      overlay.hide();
+      return { success: true };
+    }
+    case 'sidebar:toggle': {
+      if (!sidebarVisible) {
+        await mountSidebar(closeSidebar);
+        sidebarVisible = true;
+        eventBus.emit('sidebar:opened', undefined);
+        setSidebarExpanded(true);
+      } else {
+        setSidebarExpanded(!sidebarExpanded);
+      }
+      return { success: true };
+    }
+    case 'sidebar:open': {
+      if (!sidebarVisible) {
+        await mountSidebar(closeSidebar);
+        sidebarVisible = true;
+        eventBus.emit('sidebar:opened', undefined);
+      }
+      setSidebarExpanded(true);
+      return { success: true };
+    }
+    case 'sidebar:close': {
+      if (sidebarVisible) {
+        setSidebarExpanded(false);
+      }
+      return { success: true };
+    }
+    default:
+      return;
+  }
+});
+cleanupFns.push(cleanupMessaging);
+
+console.log(`[QuickCopy] Content script loaded (build: ${__BUILD_ID__})`);
+logger.info('Content script loaded');
+eventBus.emit('app:ready', undefined);
+
+function dispose(): void {
+  if (disposed) return;
+  disposed = true;
+  pipelineLock = true;
+  overlay.destroy();
+  unmountSidebar();
+  cleanupFns.forEach(fn => fn());
+  cleanupFns.length = 0;
+  captureService.dispose();
+  ocrService.terminate();
+  eventBus.clear();
+  logger.info('Content script disposed');
+}
+
+export { overlay, sidebarVisible, dispose };
