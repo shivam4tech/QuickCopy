@@ -24,7 +24,7 @@ export const MESSAGE_IDS = {
   STATUS_UPDATE: 'quickcopy:status-update',
 } as const;
 
-export const OVERLAY_Z_INDEX = 2147483646;
+export const OVERLAY_Z_INDEX = 2147483647;
 export const SIDEBAR_Z_INDEX = 2147483647;
 
 export const SIDEBAR_WIDTH = 360;

@@ -177,6 +177,11 @@ chrome.runtime.onMessage.addListener((
     handleClipboardWrite(message, sendResponse);
     return true;
   }
+  if (message.type === 'diag:log') {
+    console.log(`[QuickCopy:Background:diag] ${message.label}`, message.payload);
+    sendResponse({ success: true });
+    return true;
+  }
   sendResponse({ success: true });
   return true;
 });

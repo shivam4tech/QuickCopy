@@ -117,6 +117,12 @@ export interface StatusUpdateMessage extends MessageBase {
   message?: string;
 }
 
+export interface DiagnosticLogMessage extends MessageBase {
+  type: 'diag:log';
+  label: string;
+  payload: Record<string, unknown>;
+}
+
 export type ExtensionMessage =
   | CaptureRegionMessage
   | CaptureViewportMessage
@@ -136,7 +142,8 @@ export type ExtensionMessage =
   | SettingsChangedMessage
   | ThemeChangedMessage
   | ShortcutTriggeredMessage
-  | StatusUpdateMessage;
+  | StatusUpdateMessage
+  | DiagnosticLogMessage;
 
 export type MessageHandler<T = unknown> = (
   message: ExtensionMessage,

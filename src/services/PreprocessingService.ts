@@ -58,6 +58,12 @@ export class PreprocessingService {
 
   private toGrayscale(imageData: ImageData): ImageData {
     const data = imageData.data;
+    const pixelCount = data.length / 4;
+
+    if (this.hasColoredForeground(data, pixelCount)) {
+      return this.processColoredForeground(imageData, pixelCount);
+    }
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i]!;
       const g = data[i + 1]!;
@@ -68,6 +74,130 @@ export class PreprocessingService {
       data[i + 2] = gray;
     }
     return imageData;
+  }
+
+  private hasColoredForeground(data: Uint8ClampedArray, pixelCount: number): boolean {
+    const coloredTarget = Math.max(1, Math.floor(pixelCount * 0.001));
+    const darkTarget = Math.floor(pixelCount * 0.6);
+    let colored = 0;
+    let dark = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i]!;
+      const g = data[i + 1]!;
+      const b = data[i + 2]!;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (luma < 110) dark++;
+      if (max > 60 && (max - min) / max > 0.3 && luma < 128) {
+        colored++;
+        if (colored >= coloredTarget && dark >= darkTarget) return true;
+      }
+    }
+    return colored >= coloredTarget && dark >= darkTarget;
+  }
+
+  private processColoredForeground(imageData: ImageData, pixelCount: number): ImageData {
+    const data = imageData.data;
+    const w = imageData.width;
+    const h = imageData.height;
+    const radius = 8;
+    const k = 0.2;
+    const range = 128;
+
+    const gray = new Float32Array(pixelCount);
+    let sum = 0;
+    for (let p = 0, i = 0; p < pixelCount; p++, i += 4) {
+      const r = data[i]!;
+      const g = data[i + 1]!;
+      const b = data[i + 2]!;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const sat = max > 0 ? (max - min) / max : 0;
+      gray[p] = luma + sat * (max - luma);
+      sum += gray[p]!;
+    }
+
+    const lightOnDark = sum / pixelCount < 128;
+    const norm = new Float32Array(pixelCount);
+    for (let p = 0; p < pixelCount; p++) {
+      norm[p] = lightOnDark ? 255 - gray[p]! : gray[p]!;
+    }
+
+    const mean = this.boxBlur(norm, w, h, radius);
+    const squared = new Float32Array(pixelCount);
+    for (let p = 0; p < pixelCount; p++) {
+      squared[p] = norm[p]! * norm[p]!;
+    }
+    const meanSquared = this.boxBlur(squared, w, h, radius);
+
+    for (let p = 0, i = 0; p < pixelCount; p++, i += 4) {
+      const m = mean[p]!;
+      const ms = meanSquared[p]!;
+      const std = Math.sqrt(Math.max(0, ms - m * m));
+      const threshold = m * (1 + k * (std / range - 1));
+      const out = norm[p]! > threshold ? 255 : 0;
+      data[i] = out;
+      data[i + 1] = out;
+      data[i + 2] = out;
+    }
+    return imageData;
+  }
+
+  private boxBlur(src: Float32Array, w: number, h: number, radius: number): Float32Array {
+    const pw = w + radius * 2;
+    const ph = h + radius * 2;
+    const padded = new Float32Array(pw * ph);
+    for (let y = 0; y < ph; y++) {
+      const sy = Math.max(0, Math.min(h - 1, y - radius));
+      const row = y * pw;
+      const srow = sy * w;
+      for (let x = 0; x < pw; x++) {
+        const sx = Math.max(0, Math.min(w - 1, x - radius));
+        padded[row + x] = src[srow + sx]!;
+      }
+    }
+
+    const tmp = new Float32Array(pw * ph);
+    const out = new Float32Array(pw * ph);
+    const diameter = radius * 2 + 1;
+    const scale = 1 / diameter;
+
+    for (let y = 0; y < ph; y++) {
+      const row = y * pw;
+      let sum = 0;
+      for (let x = -radius; x <= radius; x++) {
+        sum += padded[row + x + radius]!;
+      }
+      tmp[row + radius] = sum * scale;
+      for (let x = radius + 1; x < pw - radius; x++) {
+        sum += padded[row + x + radius]! - padded[row + x - radius - 1]!;
+        tmp[row + x] = sum * scale;
+      }
+    }
+
+    for (let x = 0; x < pw; x++) {
+      let sum = 0;
+      for (let y = -radius; y <= radius; y++) {
+        sum += tmp[(y + radius) * pw + x]!;
+      }
+      out[radius * pw + x] = sum * scale;
+      for (let y = radius + 1; y < ph - radius; y++) {
+        sum += tmp[(y + radius) * pw + x]! - tmp[(y - radius - 1) * pw + x]!;
+        out[y * pw + x] = sum * scale;
+      }
+    }
+
+    const result = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      const orow = (y + radius) * pw + radius;
+      for (let x = 0; x < w; x++) {
+        result[row + x] = out[orow + x]!;
+      }
+    }
+    return result;
   }
 }
 

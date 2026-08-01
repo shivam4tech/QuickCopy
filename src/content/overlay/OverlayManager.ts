@@ -37,6 +37,7 @@ export class OverlayManager {
     this.isSelecting = false;
 
     this.createCanvas();
+    this.raiseToTop();
     this.canvas!.style.display = 'block';
     this.state = 'selecting';
 
@@ -53,6 +54,7 @@ export class OverlayManager {
   startSelection(clientX: number, clientY: number): void {
     if (this.state === 'idle') {
       this.createCanvas();
+      this.raiseToTop();
       this.canvas!.style.display = 'block';
       this.state = 'selecting';
       document.addEventListener('keydown', this.handleKeyDownBound);
@@ -147,7 +149,13 @@ export class OverlayManager {
 
     this.ctx = this.canvas.getContext('2d')!;
     this.resizeCanvas();
-    document.body.appendChild(this.canvas);
+    document.documentElement.appendChild(this.canvas);
+  }
+
+  private raiseToTop(): void {
+    if (this.canvas) {
+      document.documentElement.appendChild(this.canvas);
+    }
   }
 
   private resizeCanvas(): void {

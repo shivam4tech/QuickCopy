@@ -1,5 +1,5 @@
 import { OverlayManager } from './overlay/OverlayManager';
-import { mountSidebar, unmountSidebar, setSidebarExpanded } from './sidebar/index';
+import { mountSidebar, unmountSidebar, setSidebarExpanded, raiseSidebarToTop } from './sidebar/index';
 import { eventBus } from '@utils/eventBus';
 import { logger } from '@utils/logger';
 import { browserMessaging } from '@compat/messaging';
@@ -146,12 +146,14 @@ async function handleRegionSelected(region: Region): Promise<void> {
 }
 
 async function ensureSidebar(): Promise<void> {
-  if (sidebarVisible) return;
-  console.log(`[QuickCopy] Mounting sidebar...`);
-  await mountSidebar(closeSidebar);
-  sidebarVisible = true;
-  eventBus.emit('sidebar:opened', undefined);
-  console.log(`[QuickCopy] Sidebar mounted ✓`);
+  if (!sidebarVisible) {
+    console.log(`[QuickCopy] Mounting sidebar...`);
+    await mountSidebar(closeSidebar);
+    sidebarVisible = true;
+    eventBus.emit('sidebar:opened', undefined);
+    console.log(`[QuickCopy] Sidebar mounted ✓`);
+  }
+  raiseSidebarToTop();
 }
 
 function closeSidebar(): void {
@@ -203,6 +205,8 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
         logger.debug('Selection cancelled');
       },
     });
+
+    raiseSidebarToTop();
 
     if (clientX != null && clientY != null) {
       overlay.startSelection(clientX, clientY);

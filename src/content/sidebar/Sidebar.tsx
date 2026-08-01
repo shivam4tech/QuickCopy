@@ -52,6 +52,8 @@ export function Sidebar({ onClose }: SidebarProps) {
   const editingRef = useRef(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCloseRef = useRef(onClose);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const editHeightRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -126,6 +128,10 @@ export function Sidebar({ onClose }: SidebarProps) {
       }
     });
 
+    const unsubOverlayShown = eventBus.on('overlay:shown', () => {
+      clearDismissTimerRef();
+    });
+
     const unsubClipFail = eventBus.on('clipboard:failed', () => {
       setStatus({ label: 'Copy failed', variant: 'error' });
     });
@@ -148,6 +154,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       unsubCaptureStarted();
       unsubOcrFailed();
       unsubClipOk();
+      unsubOverlayShown();
       unsubClipFail();
       unsubStatus();
       window.removeEventListener(SIDEBAR_EXPAND_EVENT, onSetExpanded);
@@ -166,6 +173,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   const startEditing = useCallback(() => {
     if (ocrData) {
       clearDismissTimerRef();
+      const base = panelRef.current?.offsetHeight;
+      if (base && base > 0) {
+        const target = Math.min(base * 1.75, window.innerHeight - 24);
+        editHeightRef.current = `${Math.max(target, base)}px`;
+      }
       setEditText(ocrData.text);
       setEditing(true);
       editingRef.current = true;
@@ -213,12 +225,14 @@ export function Sidebar({ onClose }: SidebarProps) {
     >
       {expanded ? (
         <div
+          ref={panelRef}
           style={{
             position: 'fixed',
             top: 12,
             right: 12,
             width: 304,
-            maxHeight: 'min(72vh, 560px)',
+            height: editing ? editHeightRef.current : undefined,
+            maxHeight: editing ? editHeightRef.current : 'min(72vh, 560px)',
             display: 'flex',
             flexDirection: 'column',
             background: colors.bg.secondary,
@@ -227,6 +241,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             boxShadow: boxShadow,
             overflow: 'hidden',
             transformOrigin: 'top right',
+            transition: `height ${animation.duration.fast} ${animation.easing.ease}, max-height ${animation.duration.fast} ${animation.easing.ease}`,
             animation: `qc-pop ${animation.duration.slower} ${animation.easing.spring}`,
           }}
         >
@@ -319,7 +334,6 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    onBlur={finishEditing}
                     onKeyDown={handleEditKeyDown}
                     autoFocus
                     spellCheck={false}
@@ -337,6 +351,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                       lineHeight: 1.6,
                       resize: 'none',
                       outline: 'none',
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
                     }}
                   />
                 ) : (
@@ -396,7 +412,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="primary"
               size="md"
-              fullWidth
+              style={{ flex: 1 }}
               disabled={!ocrData}
               loading={copying}
               onClick={handleCopy}
@@ -406,10 +422,10 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="secondary"
               size="md"
-              disabled={!ocrData}
-              onClick={editing ? finishEditing : startEditing}
+              onClick={handleClose}
+              title="Close panel"
             >
-              {editing ? 'Done' : 'Edit'}
+              Close
             </Button>
           </div>
         </div>
