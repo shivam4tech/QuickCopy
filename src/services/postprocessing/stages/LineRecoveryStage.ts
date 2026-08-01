@@ -7,7 +7,7 @@ const SPLIT_PATTERNS: [RegExp, string][] = [
   [/(\w+)\s*\n\s*\.\s*(\w+)\s*\(/g, '$1.$2('],
   [/(\w+)\s*\n\s*=>/g, '$1 =>'],
   [/(\w+)\s*\n\s*([:;,\-+*/=])/g, '$1 $2'],
-  [/([:;,\-+*/=])\s*\n\s*(\w)/g, '$1 $2'],
+  [/([:,\-+*/=])\s*\n\s*(\w)/g, '$1 $2'],
   [/(import\s+\w+)\s*\n\s*(from)/g, '$1 $2'],
   [/(from\s+\S+)\s*\n\s*(import)/g, '$1 $2'],
   [/(export\s+)\s*\n\s*(default|const|let|var|function|class|interface|type)/g, '$1$2'],
@@ -35,9 +35,6 @@ const SHORT_LINE_PATTERNS: [RegExp, PatternReplacer][] = [
 function isLikelyMerged(line: string, nextLine: string): boolean {
   if (!nextLine) return false;
 
-  const joined = line + nextLine;
-
-  if (/\.\w+\(/.test(joined.slice(Math.max(0, line.length - 20)))) return true;
   if (/^[a-z]\s+[a-z]/i.test(line) && /^[a-z]/i.test(nextLine)) return false;
 
   if (line.endsWith('.') && /^[a-z]/.test(nextLine)) {
@@ -50,7 +47,7 @@ function isLikelyMerged(line: string, nextLine: string): boolean {
 function isLikelySplit(line: string, nextLine: string): boolean {
   if (!nextLine) return false;
   if (/^[{(\[]/.test(nextLine)) return true;
-  if (/[,;:]\s*$/.test(line) && /^[a-z]/i.test(nextLine)) return true;
+  if (/[,:]\s*$/.test(line) && /^[a-z]/i.test(nextLine)) return true;
   if (line.endsWith('->') || line.endsWith('=>')) return true;
   if (/^(from|import|export|return)\s*$/i.test(line.trim())) return true;
   if (/^(const|let|var|function|def|class)\s*$/i.test(line.trim())) return true;

@@ -5,6 +5,7 @@ import { eventBus } from '@utils/eventBus';
 import { logger, getErrorMessage, getErrorStack } from '@utils/logger';
 import { timeoutOCR, withTimeout } from '@utils/timeout';
 import { browserMessaging } from '@compat/messaging';
+import { flattenTesseractBlocks } from './ocr/geometry';
 
 interface TesseractWorker {
   recognize(image: string, options?: Record<string, unknown>, output?: Record<string, boolean>): Promise<{ data: { text: string; confidence: number; blocks: unknown[] } }>;
@@ -449,7 +450,7 @@ export class OCRService implements OcrServiceInterface {
 
       const text = result.data.text || '';
       const confidence = typeof result.data.confidence === 'number' ? result.data.confidence : 0;
-      const blocks = result.data.blocks ?? [];
+      const blocks = flattenTesseractBlocks(result.data.blocks);
 
       console.log(`[QuickCopy] [8/10] OCR finished ✓`, {
         textLength: text.length,
@@ -465,19 +466,7 @@ export class OCRService implements OcrServiceInterface {
       const ocrResult: OcrResult = {
         text,
         confidence,
-        blocks: blocks.map((b: unknown) => {
-          const block = b as { text: string; confidence: number; bbox: { x0: number; y0: number; x1: number; y1: number } };
-          return {
-            text: block.text,
-            confidence: block.confidence,
-            bbox: {
-              x: block.bbox.x0,
-              y: block.bbox.y0,
-              width: block.bbox.x1 - block.bbox.x0,
-              height: block.bbox.y1 - block.bbox.y0,
-            },
-          };
-        }),
+        blocks,
         language: _language ?? 'eng',
         duration,
       };

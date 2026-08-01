@@ -24,7 +24,11 @@ export interface StageDebugInfo {
 export interface PostProcessingContext {
   text: string;
   confidence: number;
-  blocks: Array<{ text: string; confidence: number }>;
+  blocks: Array<{
+    text: string;
+    confidence: number;
+    bbox?: { x: number; y: number; width: number; height: number } | null;
+  }>;
   originalText: string;
   detectedContentType: ContentType;
   detectedLanguage: ProgrammingLanguage;

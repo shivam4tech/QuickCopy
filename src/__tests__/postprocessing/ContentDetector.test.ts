@@ -72,6 +72,12 @@ describe('ContentDetector', () => {
       expect(result).toBe('sql');
     });
 
+    it('does not detect a brace-style class as Python', () => {
+      const result = detector.detectLanguage('class Program {\nstatic void Main() {\nx();\n}\n}\n');
+      expect(result).not.toBe('python');
+      expect(result).toBe('csharp');
+    });
+
     it('detects shell', () => {
       const result = detector.detectLanguage('$ sudo apt install nodejs');
       expect(result).toBe('shell');

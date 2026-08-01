@@ -105,7 +105,8 @@ export class ContentDetector {
     const checks: [ProgrammingLanguage, RegExp, number][] = [
       ['shell', /^\$\s/m, 10],
       ['shell', /^[~\/]\S*[#$>]\s/m, 10],
-      ['python', /^(import |from |def |class |print\(|if __name__|yield |lambda |async def|with )/m, 15],
+      ['python', /^(import |from |def |print\(|if __name__|yield |lambda |async def|with )/m, 15],
+      ['python', /^class\s+\w+.*:\s*$/m, 15],
       ['python', /self\.|__init__|__str__|__repr__|__all__|sys\.|os\.|re\.|numpy|pandas/g, 8],
       ['typescript', /:\s*(string|number|boolean|any|never|void|unknown)\b/g, 10],
       ['typescript', /interface\s+\w+|type\s+\w+\s*=|as\s+\w+|readonly/g, 10],
@@ -121,7 +122,7 @@ export class ContentDetector {
       ['java', /public\s+(static\s+)?(void|int|String|boolean|class)/g, 12],
       ['java', /System\.(out|err)\.(print|println)|@Override/g, 10],
       ['java', /import\s+java\.|new\s+\w+\(\)/g, 8],
-      ['csharp', /^(using |namespace |class |public |private |protected )/m, 12],
+      ['csharp', /^(using |namespace |class |public |private |protected |static )/m, 12],
       ['csharp', /Console\.(Write|Read)Line|var\s+\w+\s*=\s*new/g, 10],
       ['csharp', /async Task|string\.|int\.|\.Select\(|\.Where\(/g, 5],
       ['shell', /^[\w@:~\/]+[#$>]\s/m, 15],

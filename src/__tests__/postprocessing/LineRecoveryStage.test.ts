@@ -46,6 +46,19 @@ describe('LineRecoveryStage', () => {
     expect(result.text).toBe(input);
   });
 
+  it('does not merge separate code statements', () => {
+    const input =
+      'function add(a, b) { return a + b; }\nconst r = add(1, 2); console.log(r);';
+    const result = stage.process(createTestContext(input));
+    expect(result.text).toBe(input);
+  });
+
+  it('does not merge statements ending in semicolons', () => {
+    const input = 'x = 1;\nfoo();';
+    const result = stage.process(createTestContext(input));
+    expect(result.text).toBe(input);
+  });
+
   it('handles empty text', () => {
     const result = stage.process(createTestContext(''));
     expect(result.text).toBe('');

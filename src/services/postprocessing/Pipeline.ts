@@ -7,6 +7,7 @@ import { CharacterRepairStage } from './stages/CharacterRepairStage';
 import { UrlEmailStage } from './stages/UrlEmailStage';
 import { FilePathStage } from './stages/FilePathStage';
 import { ProgrammingStage } from './stages/ProgrammingStage';
+import { CodeFormattingStage } from './stages/CodeFormattingStage';
 import { MarkdownStage } from './stages/MarkdownStage';
 import { TerminalStage } from './stages/TerminalStage';
 import { ValidationStage } from './stages/ValidationStage';
@@ -32,6 +33,7 @@ export class Pipeline {
 
     if (settings.programmingCleanup) {
       this.stages.push(new ProgrammingStage());
+      this.stages.push(new CodeFormattingStage());
     }
     if (settings.markdownCleanup) {
       this.stages.push(new MarkdownStage());

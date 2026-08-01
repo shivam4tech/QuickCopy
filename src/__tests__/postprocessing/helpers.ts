@@ -21,6 +21,6 @@ export function createTestContext(text: string, contentType?: ContentType): Post
     qualityScore: null,
     repairCount: 0,
     debugInfo: [],
-    settings: DEFAULT_SETTINGS,
+    settings: { ...DEFAULT_SETTINGS },
   };
 }
