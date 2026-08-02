@@ -263,7 +263,7 @@ export function App() {
             <div style={styles.settingRow}>
               <div>
                 <div style={styles.settingLabel}>Append newline on copy</div>
-                <div style={styles.settingDesc}>Add a trailing newline to copied text so pasting lands on a fresh line</div>
+                <div style={styles.settingDesc}>End copied text with a newline so pasting lands on a fresh line; off copies without a trailing newline</div>
               </div>
               <Switch
                 checked={settings.appendNewline}

@@ -38,7 +38,7 @@ export interface QualityResult {
   retryReason: string | null;
 }
 
-const PRINTABLE = /[\u0020-\u007E\u00A0-\u024F\u2500-\u257F\u2580-\u259F]/;
+const PRINTABLE = /[\u0020-\u007E\u00A0-\u024F\u2500-\u257F\u2580-\u259F\u{1F000}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2700}-\u{27BF}]/u;
 
 export function meanConfidence(blocks: QualityBlock[], fallback: number): number {
   if (blocks.length === 0) return fallback;

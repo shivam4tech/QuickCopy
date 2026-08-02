@@ -9,7 +9,7 @@ export interface ExtensionSettings {
   ocrLanguage: OcrLanguage;
   copyBehavior: CopyBehavior;
   autoCopy: boolean;
-  /** Append a trailing newline to copied text so pasting lands on a fresh line */
+  /** When on, copied text always ends with a newline; when off, trailing newlines are stripped */
   appendNewline: boolean;
   showPanel: boolean;
   showConfirmation: boolean;

@@ -25,7 +25,7 @@ export class ClipboardService {
 
   async copy(text: string, behavior: CopyBehavior = 'smart'): Promise<boolean> {
     const copyText = await this.prepareCopyText(text);
-    console.log(`[QuickCopy] [9/10] Clipboard copy requested`, { textLength: copyText.length, behavior, appendNewline: copyText !== text });
+    console.log(`[QuickCopy] [9/10] Clipboard copy requested`, { textLength: copyText.length, behavior, normalized: copyText !== text });
 
     try {
       const startTime = performance.now();
@@ -63,19 +63,21 @@ export class ClipboardService {
   }
 
   /**
-   * Apply the "append newline on copy" setting. Never duplicates an existing
-   * trailing newline, and silently defaults to no-op when settings are
-   * unavailable (so copy never breaks).
+   * Apply the "append newline on copy" setting. This is the single authority
+   * for the copied text's ending — the OCR/post-processing pipeline may or may
+   * not leave a trailing newline, but the user's toggle must win:
+   *
+   *   - ON:  trim trailing whitespace, end with exactly one "\n" (so the next
+   *          paste/type lands on a fresh line).
+   *   - OFF: trim trailing whitespace/newlines, end with no newline (paste
+   *          lands at the end of the text).
    *
    * Reads the persisted value straight from chrome.storage so it always sees
    * the latest toggle state, regardless of in-memory caches.
    */
   private async prepareCopyText(text: string): Promise<string> {
-    const shouldAppend = await this.shouldAppendNewline();
-    if (shouldAppend && !text.endsWith('\n')) {
-      return `${text}\n`;
-    }
-    return text;
+    const append = await this.shouldAppendNewline();
+    return applyAppendNewline(text, append);
   }
 
   private async shouldAppendNewline(): Promise<boolean> {
@@ -185,6 +187,19 @@ export class ClipboardService {
   async read(): Promise<string> {
     return navigator.clipboard.readText();
   }
+}
+
+/**
+ * Normalize text's ending per the "append newline" setting (pure, testable).
+ * - `append=true`:  strip trailing whitespace/newlines, then end with exactly
+ *   one "\n". Empty / whitespace-only input stays empty.
+ * - `append=false`: strip trailing whitespace/newlines, end with no newline.
+ */
+export function applyAppendNewline(text: string, append: boolean): string {
+  if (text.length === 0) return text;
+  const trimmed = text.replace(/[ \t\r\n]+$/g, '');
+  if (trimmed.length === 0) return '';
+  return append ? `${trimmed}\n` : trimmed;
 }
 
 export const clipboardService = ClipboardService.getInstance();
