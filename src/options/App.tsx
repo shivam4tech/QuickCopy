@@ -183,9 +183,25 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>OCR</h2>
-        <p style={styles.sectionDesc}>Text recognition settings (requires Phase 2).</p>
+        <p style={styles.sectionDesc}>Choose how QuickCopy recognizes text and code from screenshots.</p>
         <Card>
           <CardBody>
+            <div style={styles.settingRow}>
+              <div>
+                <div style={styles.settingLabel}>OCR engine mode</div>
+                <div style={styles.settingDesc}>Auto picks the best engine per capture; Code OCR is best for source code</div>
+              </div>
+              <Select
+                value={settings.ocrMode}
+                onChange={(v) => updateSetting('ocrMode', v as typeof settings.ocrMode)}
+                options={[
+                  { label: 'Auto', value: 'auto' },
+                  { label: 'Fast text (Tesseract only)', value: 'text' },
+                  { label: 'Code OCR (PP-OCRv5 only)', value: 'code' },
+                  { label: 'Auto + Debug', value: 'debug' },
+                ]}
+              />
+            </div>
             <div style={styles.settingRow}>
               <div>
                 <div style={styles.settingLabel}>Recognition language</div>
@@ -242,6 +258,16 @@ export function App() {
               <Switch
                 checked={settings.showPanel}
                 onChange={(checked) => updateSetting('showPanel', checked)}
+              />
+            </div>
+            <div style={styles.settingRow}>
+              <div>
+                <div style={styles.settingLabel}>Append newline on copy</div>
+                <div style={styles.settingDesc}>Add a trailing newline to copied text so pasting lands on a fresh line</div>
+              </div>
+              <Switch
+                checked={settings.appendNewline}
+                onChange={(checked) => updateSetting('appendNewline', checked)}
               />
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>

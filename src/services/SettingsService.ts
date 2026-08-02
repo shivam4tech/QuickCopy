@@ -7,10 +7,25 @@ import { logger } from '@utils/logger';
 
 export class SettingsService {
   private static instance: SettingsService;
-  private settings: ExtensionSettings = defaultSettings;
+  private settings: ExtensionSettings = { ...defaultSettings };
   private loaded = false;
 
-  private constructor() {}
+  private constructor() {
+    // Keep the in-memory cache in sync with other extension contexts (e.g.
+    // the options page). Without this, get()/getAll() return stale values in
+    // long-lived contexts like an already-open content script.
+    browserStorage.onChanged((changes, areaName) => {
+      if (areaName !== 'local') return;
+      const change = changes[STORAGE_KEYS.SETTINGS];
+      if (!change?.newValue) return;
+      const merged = { ...defaultSettings, ...(change.newValue as Partial<ExtensionSettings>) };
+      if (JSON.stringify(merged) !== JSON.stringify(this.settings)) {
+        this.settings = merged;
+        this.loaded = true;
+        eventBus.emit('settings:changed', merged);
+      }
+    });
+  }
 
   static getInstance(): SettingsService {
     if (!SettingsService.instance) {

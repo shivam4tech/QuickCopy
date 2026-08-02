@@ -9,6 +9,8 @@ export interface ExtensionSettings {
   ocrLanguage: OcrLanguage;
   copyBehavior: CopyBehavior;
   autoCopy: boolean;
+  /** Append a trailing newline to copied text so pasting lands on a fresh line */
+  appendNewline: boolean;
   showPanel: boolean;
   showConfirmation: boolean;
   enableContextMenu: boolean;
@@ -20,6 +22,8 @@ export interface ExtensionSettings {
   terminalCleanup: boolean;
   debugMode: boolean;
   confidenceThreshold: number;
+  /** OCR engine selection: auto routing, force text (Tesseract), force code, or auto+debug */
+  ocrMode: 'auto' | 'text' | 'code' | 'debug';
 }
 
 export type SettingsKey = keyof ExtensionSettings;
@@ -33,6 +37,7 @@ export const defaultSettings: ExtensionSettings = {
   ocrLanguage: 'eng',
   copyBehavior: 'smart',
   autoCopy: true,
+  appendNewline: true,
   showPanel: true,
   showConfirmation: true,
   enableContextMenu: true,
@@ -44,6 +49,7 @@ export const defaultSettings: ExtensionSettings = {
   terminalCleanup: true,
   debugMode: false,
   confidenceThreshold: 60,
+  ocrMode: 'auto',
 };
 
 export interface SettingsGroup {

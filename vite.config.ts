@@ -34,6 +34,9 @@ export default defineConfig({
       '@type': resolve(__dirname, 'src/types'),
       '@styles': resolve(__dirname, 'src/styles'),
       '@shared': resolve(__dirname, 'src/shared'),
+      // Only the WASM backend is used (CodeOCR). Avoid bundling the webgpu/webgl
+      // backends + their ~27MB .jsep.wasm asset, and the duplicate full glue.
+      'onnxruntime-web': resolve(__dirname, 'node_modules/onnxruntime-web/dist/ort.wasm.min.mjs'),
     },
   },
   build: {

@@ -38,6 +38,21 @@ export interface OcrResult {
   blocks: OcrBlock[];
   language: OcrLanguage;
   duration: number;
+  /** routing/engine metadata attached by OCRManager (optional, debug) */
+  engine?: OcrEngineInfo;
+}
+
+export interface OcrEngineInfo {
+  provider: 'tesseract' | 'codeocr';
+  mode: 'auto' | 'text' | 'code' | 'debug';
+  routeReason: string;
+  textScore: number;
+  codeScore: number;
+  retried: boolean;
+  retryReason: string | null;
+  fallbackUsed: boolean;
+  analysisMs: number;
+  recognitionMs: number;
 }
 
 export interface OcrBlock {

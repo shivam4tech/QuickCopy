@@ -13,10 +13,17 @@ interface OcrDisplayData {
   text: string;
   confidence: number;
   duration: number;
+  engine?: OcrResult['engine'];
 }
 
 const SIDEBAR_EXPAND_EVENT = 'quickcopy:sidebar:set-expanded';
 const SIDEBAR_STATE_EVENT = 'quickcopy:sidebar:expanded-changed';
+
+function engineLabel(engine: NonNullable<OcrResult['engine']>): string {
+  const engineName = engine.provider === 'codeocr' ? 'Code OCR' : 'Tesseract';
+  const suffix = engine.retried ? ' (retry)' : engine.fallbackUsed ? ' (fallback)' : '';
+  return `${engineName}${suffix}`;
+}
 
 type StatusVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
 
@@ -102,6 +109,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         text: result.text,
         confidence: result.confidence,
         duration: result.duration,
+        engine: result.engine,
       });
       setEditText(result.text);
       setEditing(false);
@@ -327,6 +335,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   </span>
                   <span style={{ fontSize: fontSizes.xs, color: colors.text.muted }}>
                     {ocrData.text.length} chars{ocrData.duration ? ` · ${(ocrData.duration / 1000).toFixed(1)}s` : ''}
+                    {ocrData.engine ? ` · ${engineLabel(ocrData.engine)}` : ''}
                   </span>
                 </div>
 

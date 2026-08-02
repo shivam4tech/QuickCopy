@@ -5,6 +5,11 @@ import { logger } from '@utils/logger';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import { timeoutClipboard } from '@utils/timeout';
 import { browserMessaging } from '@compat/messaging';
+import { browserStorage } from '@compat/storage';
+import { settingsService } from './SettingsService';
+import { defaultSettings } from '@type/settings';
+import type { ExtensionSettings } from '@type/settings';
+import { STORAGE_KEYS } from '@shared/constants';
 
 export class ClipboardService {
   private static instance: ClipboardService;
@@ -19,17 +24,18 @@ export class ClipboardService {
   }
 
   async copy(text: string, behavior: CopyBehavior = 'smart'): Promise<boolean> {
-    console.log(`[QuickCopy] [9/10] Clipboard copy requested`, { textLength: text.length, behavior });
+    const copyText = await this.prepareCopyText(text);
+    console.log(`[QuickCopy] [9/10] Clipboard copy requested`, { textLength: copyText.length, behavior, appendNewline: copyText !== text });
 
     try {
       const startTime = performance.now();
 
-      const backgroundCopied = await this.tryBackgroundCopy(text, behavior);
+      const backgroundCopied = await this.tryBackgroundCopy(copyText, behavior);
       if (!backgroundCopied) {
         if (behavior === 'formatted') {
-          await this.copyFormatted(text);
+          await this.copyFormatted(copyText);
         } else {
-          await this.copyPlain(text);
+          await this.copyPlain(copyText);
         }
       }
 
@@ -38,14 +44,14 @@ export class ClipboardService {
 
       eventBus.emit('clipboard:written', true);
       eventBus.emit('status:update', { status: 'ready', message: 'Copied to clipboard' });
-      logger.info('Copied to clipboard', { chars: text.length });
+      logger.info('Copied to clipboard', { chars: copyText.length });
       return true;
     } catch (error) {
       const errMsg = getErrorMessage(error);
       console.error(`[QuickCopy] [9/10] Clipboard FAILED`, {
         message: errMsg,
         stack: getErrorStack(error),
-        textLength: text.length,
+        textLength: copyText.length,
         type: typeof error,
       });
       const safeErr = error instanceof Error ? error : new Error(errMsg);
@@ -53,6 +59,39 @@ export class ClipboardService {
       eventBus.emit('clipboard:written', false);
       eventBus.emit('status:update', { status: 'error', message: 'Copy to clipboard failed' });
       return false;
+    }
+  }
+
+  /**
+   * Apply the "append newline on copy" setting. Never duplicates an existing
+   * trailing newline, and silently defaults to no-op when settings are
+   * unavailable (so copy never breaks).
+   *
+   * Reads the persisted value straight from chrome.storage so it always sees
+   * the latest toggle state, regardless of in-memory caches.
+   */
+  private async prepareCopyText(text: string): Promise<string> {
+    const shouldAppend = await this.shouldAppendNewline();
+    if (shouldAppend && !text.endsWith('\n')) {
+      return `${text}\n`;
+    }
+    return text;
+  }
+
+  private async shouldAppendNewline(): Promise<boolean> {
+    try {
+      const result = await browserStorage.get<Partial<ExtensionSettings>>(STORAGE_KEYS.SETTINGS);
+      const stored = result[STORAGE_KEYS.SETTINGS];
+      if (stored && typeof stored.appendNewline === 'boolean') {
+        return stored.appendNewline;
+      }
+    } catch {
+      // fall through to the service cache
+    }
+    try {
+      return (await settingsService.get('appendNewline')) === true;
+    } catch {
+      return defaultSettings.appendNewline;
     }
   }
 

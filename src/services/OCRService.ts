@@ -6,6 +6,9 @@ import { logger, getErrorMessage, getErrorStack } from '@utils/logger';
 import { timeoutOCR, withTimeout } from '@utils/timeout';
 import { browserMessaging } from '@compat/messaging';
 import { flattenTesseractBlocks } from './ocr/geometry';
+import { OCRManager } from './ocr/OCRManager';
+import type { OcrMode } from './ocr/router/OCRRouter';
+import { settingsService } from './SettingsService';
 
 interface TesseractWorker {
   recognize(image: string, options?: Record<string, unknown>, output?: Record<string, boolean>): Promise<{ data: { text: string; confidence: number; blocks: unknown[] } }>;
@@ -28,8 +31,34 @@ export class OCRService implements OcrServiceInterface {
   private workerInitPromise: Promise<void> | null = null;
   private _disposed = false;
   private backgroundMode = false;
+  private ocrManager: OCRManager | null = null;
+  private settingsMode: OcrMode = 'auto';
 
   private constructor() {}
+
+  private async syncMode(): Promise<OcrMode> {
+    try {
+      const mode = await settingsService.get('ocrMode');
+      if (mode) this.settingsMode = mode;
+    } catch {
+      // default to auto
+    }
+    this.ocrManager?.setMode(this.settingsMode);
+    return this.settingsMode;
+  }
+
+  private getOrCreateManager(): OCRManager {
+    if (!this.ocrManager) {
+      this.ocrManager = new OCRManager({
+        mode: this.settingsMode,
+        tesseract: {
+          isReady: () => !!this.worker,
+          recognize: (imageData, language) => this.recognizeWithLocalWorker(imageData, language),
+        },
+      });
+    }
+    return this.ocrManager;
+  }
 
   static getInstance(): OCRService {
     if (!OCRService.instance) {
@@ -424,15 +453,10 @@ export class OCRService implements OcrServiceInterface {
       throw new Error(errMsg);
     }
 
+    await this.syncMode();
+
     if (this.backgroundMode) {
       return this.recognizeInBackground(imageData, _language);
-    }
-
-    const worker = this.worker;
-    if (!worker) {
-      const errMsg = 'OCR worker not available';
-      console.error(`[QuickCopy] [7/10] OCR FAILED: ${errMsg}`);
-      throw new Error(errMsg);
     }
 
     const startTime = performance.now();
@@ -440,42 +464,31 @@ export class OCRService implements OcrServiceInterface {
     eventBus.emit('status:update', { status: 'busy', message: 'Performing OCR...' });
 
     try {
-      console.log(`[QuickCopy] [7/10] Calling worker.recognize() with image of length ${imageData.length}`);
-
-      const result = await timeoutOCR(
-        worker.recognize(imageData, {}, { blocks: true })
-      ) as Awaited<ReturnType<TesseractWorker['recognize']>>;
-
-      const duration = performance.now() - startTime;
-
-      const text = result.data.text || '';
-      const confidence = typeof result.data.confidence === 'number' ? result.data.confidence : 0;
-      const blocks = flattenTesseractBlocks(result.data.blocks);
+      const manager = this.getOrCreateManager();
+      const result = await manager.recognize(imageData, _language);
+      result.duration = performance.now() - startTime;
 
       console.log(`[QuickCopy] [8/10] OCR finished ✓`, {
-        textLength: text.length,
-        confidence: confidence.toFixed(1) + '%',
-        blockCount: blocks.length,
-        executionTimeMs: Math.round(duration),
+        textLength: result.text.length,
+        confidence: result.confidence.toFixed(1) + '%',
+        blockCount: result.blocks.length,
+        executionTimeMs: Math.round(result.duration),
+        engine: result.engine?.provider,
+        route: result.engine?.routeReason,
+        retried: result.engine?.retried ?? false,
+        codeScore: result.engine?.codeScore,
+        textScore: result.engine?.textScore,
       });
 
-      if (text.length === 0) {
-        console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${confidence})`);
+      if (result.text.length === 0) {
+        console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${result.confidence})`);
       }
 
-      const ocrResult: OcrResult = {
-        text,
-        confidence,
-        blocks,
-        language: _language ?? 'eng',
-        duration,
-      };
-
-      eventBus.emit('ocr:completed', ocrResult);
+      eventBus.emit('ocr:completed', result);
       eventBus.emit('status:update', { status: 'ready', message: 'OCR completed' });
-      logger.info('OCR completed', { confidence: ocrResult.confidence, chars: ocrResult.text.length, duration: `${Math.round(duration)}ms` });
+      logger.info('OCR completed', { confidence: result.confidence, chars: result.text.length, duration: `${Math.round(result.duration)}ms`, engine: result.engine?.provider });
 
-      return ocrResult;
+      return result;
     } catch (error) {
       console.error(`[QuickCopy] [7/10] OCR FAILED`, {
         message: getErrorMessage(error),
@@ -488,6 +501,36 @@ export class OCRService implements OcrServiceInterface {
       eventBus.emit('status:update', { status: 'error', message: 'OCR failed' });
       throw safeErr;
     }
+  }
+
+  /**
+   * Local (in-page) Tesseract recognition, invoked by OCRManager. Pure
+   * recognition — no routing/events here.
+   */
+  private async recognizeWithLocalWorker(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
+    const worker = this.worker;
+    if (!worker) throw new Error('OCR worker not available');
+
+    const startTime = performance.now();
+    const result = await timeoutOCR(
+      worker.recognize(imageData, {}, { blocks: true })
+    ) as Awaited<ReturnType<TesseractWorker['recognize']>>;
+
+    const text = result.data.text || '';
+    const confidence = typeof result.data.confidence === 'number' ? result.data.confidence : 0;
+    const blocks = flattenTesseractBlocks(result.data.blocks);
+
+    if (text.length === 0) {
+      console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${confidence})`);
+    }
+
+    return {
+      text,
+      confidence,
+      blocks,
+      language: language ?? 'eng',
+      duration: performance.now() - startTime,
+    };
   }
 
   async isAvailable(): Promise<boolean> {

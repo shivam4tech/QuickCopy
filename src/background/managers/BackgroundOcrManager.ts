@@ -2,6 +2,9 @@ import type { OcrResult, OcrLanguage } from '@type/index';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import { timeoutOCR, withTimeout } from '@utils/timeout';
 import { flattenTesseractBlocks } from '../../services/ocr/geometry';
+import { OCRManager } from '../../services/ocr/OCRManager';
+import type { OcrMode } from '../../services/ocr/router/OCRRouter';
+import { settingsService } from '@services/SettingsService';
 
 interface TesseractWorker {
   recognize(image: string, options?: Record<string, unknown>, output?: Record<string, boolean>): Promise<{ data: { text: string; confidence: number; blocks: unknown[] } }>;
@@ -78,6 +81,8 @@ export class BackgroundOcrManager {
   private worker: TesseractWorker | null = null;
   private status: BackgroundOcrStatus = 'idle';
   private initPromise: Promise<{ success: boolean; reason?: string }> | null = null;
+  private ocrManager: OCRManager | null = null;
+  private settingsMode: OcrMode = 'auto';
 
   private constructor() {}
 
@@ -86,6 +91,29 @@ export class BackgroundOcrManager {
       BackgroundOcrManager.instance = new BackgroundOcrManager();
     }
     return BackgroundOcrManager.instance;
+  }
+
+  private getOrCreateManager(): OCRManager {
+    if (!this.ocrManager) {
+      this.ocrManager = new OCRManager({
+        mode: this.settingsMode,
+        tesseract: {
+          isReady: () => !!this.worker,
+          recognize: (imageData, language) => this.recognizeWithWorker(imageData, language),
+        },
+      });
+    }
+    return this.ocrManager;
+  }
+
+  private async syncMode(): Promise<void> {
+    try {
+      const mode = await settingsService.get('ocrMode');
+      if (mode) this.settingsMode = mode;
+    } catch {
+      // default to auto
+    }
+    this.ocrManager?.setMode(this.settingsMode);
   }
 
   getStatus(): BackgroundOcrStatus {
@@ -212,24 +240,44 @@ export class BackgroundOcrManager {
       throw new Error(`Background OCR unavailable (${init.reason ?? 'unknown'})`);
     }
 
+    await this.syncMode();
+    const manager = this.getOrCreateManager();
     const startTime = performance.now();
     console.log(`[QuickCopy:Background] recognize() called with image of length ${imageData.length}`);
 
+    const result = await manager.recognize(imageData, language);
+    result.duration = performance.now() - startTime;
+
+    console.log(`[QuickCopy:Background] recognize() finished`, {
+      textLength: result.text.length,
+      confidence: result.confidence.toFixed(1) + '%',
+      blockCount: result.blocks.length,
+      executionTimeMs: Math.round(result.duration),
+      engine: result.engine?.provider,
+      route: result.engine?.routeReason,
+      retried: result.engine?.retried ?? false,
+      codeScore: result.engine?.codeScore,
+      textScore: result.engine?.textScore,
+    });
+
+    if (result.text.length === 0) {
+      console.warn(`[QuickCopy:Background] OCR returned empty text (confidence: ${result.confidence})`);
+    }
+
+    return result;
+  }
+
+  private async recognizeWithWorker(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
+    if (!this.worker) throw new Error('Background OCR worker not available');
+
+    const startTime = performance.now();
     const result = await timeoutOCR(
       this.worker.recognize(imageData, {}, { blocks: true })
     ) as Awaited<ReturnType<TesseractWorker['recognize']>>;
 
-    const duration = performance.now() - startTime;
     const text = result.data.text || '';
     const confidence = typeof result.data.confidence === 'number' ? result.data.confidence : 0;
     const blocks = flattenTesseractBlocks(result.data.blocks);
-
-    console.log(`[QuickCopy:Background] recognize() finished`, {
-      textLength: text.length,
-      confidence: confidence.toFixed(1) + '%',
-      blockCount: blocks.length,
-      executionTimeMs: Math.round(duration),
-    });
 
     if (text.length === 0) {
       console.warn(`[QuickCopy:Background] OCR returned empty text (confidence: ${confidence})`);
@@ -240,7 +288,7 @@ export class BackgroundOcrManager {
       confidence,
       blocks,
       language: language ?? 'eng',
-      duration,
+      duration: performance.now() - startTime,
     };
   }
 

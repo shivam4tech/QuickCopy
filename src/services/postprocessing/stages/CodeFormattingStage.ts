@@ -1,5 +1,6 @@
 import type { PostProcessingContext, PostProcessingStage } from '../types';
 import { codeFormatter } from '../code/CodeFormatter';
+import { braceRecovery } from '../code/BraceRecovery';
 import type { FormattableBlock } from '../code/types';
 
 export class CodeFormattingStage implements PostProcessingStage {
@@ -15,13 +16,16 @@ export class CodeFormattingStage implements PostProcessingStage {
       bbox: b.bbox,
     }));
 
-    const result = codeFormatter.format(ctx.text, blocks);
-    if (!result.changed) return ctx;
+    const recovered = braceRecovery.recover(ctx.text, blocks);
+    const result = codeFormatter.format(recovered.text, blocks);
+    if (!result.changed && !recovered.changed) return ctx;
+
+    const lineChanges = result.lineChanges + (recovered.changed ? 1 : 0);
 
     return {
       ...ctx,
       text: result.text,
-      repairCount: ctx.repairCount + result.lineChanges,
+      repairCount: ctx.repairCount + lineChanges,
     };
   }
 }
