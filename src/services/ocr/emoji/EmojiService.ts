@@ -48,7 +48,7 @@ export function detectEmojisInImage(
   entries: EmojiMatchEntry[],
   options: EmojiDetectOptions = {},
 ): EmojiDetection[] {
-  const minScore = options.minScore ?? 0.55;
+  const minScore = options.minScore ?? 0.75;
   const mask = buildEmojiMask(input);
   const comps = connectedComponents(mask, input.width, input.height);
   const filtered = filterEmojiComponents(comps, options);

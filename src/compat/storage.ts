@@ -78,7 +78,7 @@ export const browserStorage = {
         api.storage.onChanged.removeListener(listener);
       };
     } catch {
-      logger.warn('No browser API for storage.onChanged');
+      logger.debug('storage.onChanged not available in this context; change subscriptions disabled');
       return () => {};
     }
   },

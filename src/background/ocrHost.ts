@@ -3,6 +3,8 @@ import { getErrorMessage } from '@utils/logger';
 import type { ExtensionMessage, MessageResponse } from '@type/messages';
 import type { OcrLanguage } from '@type/index';
 
+const OCR_RECOGNIZE_TIMEOUT_MS = 70000;
+
 export function handleOcrMessage(
   message: ExtensionMessage,
   sendResponse: (response: MessageResponse) => void,
@@ -24,11 +26,25 @@ export function handleOcrMessage(
     return true;
   }
   if (message.type === 'ocr:recognize') {
+    let responded = false;
+    const timer = setTimeout(() => {
+      if (responded) return;
+      responded = true;
+      console.error(`[QuickCopy:OCR] ocr:recognize TIMEOUT (${OCR_RECOGNIZE_TIMEOUT_MS}ms)`);
+      sendResponse({ success: false, error: 'OCR recognize timed out' } as unknown as MessageResponse);
+    }, OCR_RECOGNIZE_TIMEOUT_MS);
+
     backgroundOcrManager.recognize(message.imageData, message.language as OcrLanguage | undefined)
       .then((result) => {
+        if (responded) return;
+        responded = true;
+        clearTimeout(timer);
         sendResponse({ success: true, result } as unknown as MessageResponse);
       })
       .catch((err) => {
+        if (responded) return;
+        responded = true;
+        clearTimeout(timer);
         console.error(`[QuickCopy:OCR] ocr:recognize handler FAILED`, getErrorMessage(err));
         sendResponse({ success: false, error: getErrorMessage(err) } as unknown as MessageResponse);
       });

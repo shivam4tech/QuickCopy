@@ -55,8 +55,8 @@ export function isEmojiColorPixel(r: number, g: number, b: number): boolean {
   const max = r > g ? (r > b ? r : b) : g > b ? g : b;
   const min = r < g ? (r < b ? r : b) : g < b ? g : b;
   const sat = max - min;
-  if (sat < 16) return false; // near-monochrome (text, grayscale background)
-  return max >= 30 && min <= 245; // neither near-black nor near-white
+  if (sat < 30) return false; // text glyphs and grayscale backgrounds
+  return max >= 40 && min <= 235; // neither near-black nor near-white
 }
 
 /**
@@ -125,8 +125,8 @@ export function filterEmojiComponents(
   comps: Component[],
   options: ComponentFilterOptions = {},
 ): Component[] {
-  const minPixels = options.minPixels ?? 12;
-  const minSize = options.minSize ?? 8;
+  const minPixels = options.minPixels ?? 40;
+  const minSize = options.minSize ?? 14;
   const maxSize = options.maxSize ?? 180;
   return comps.filter((c) => {
     if (c.pixelCount < minPixels) return false;

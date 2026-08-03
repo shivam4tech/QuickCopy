@@ -128,6 +128,14 @@ export class OCRService implements OcrServiceInterface {
     }
   }
 
+  /**
+   * Whether this page context can construct the real OCR worker. Probes with the
+   * extension's own `worker.min.js` URL (not a `data:` URL): data:/blob: worker
+   * probes are blocked by page CSP on many sites and produce confusing CSP
+   * errors, while the extension URL reflects exactly what `initWorker()` will
+   * actually construct. A `data:`/`blob:`-only page that allows extension URLs
+   * returns true here so the fast in-page worker is used.
+   */
   private canSpawnWorkersLocally(): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
@@ -141,9 +149,9 @@ export class OCRService implements OcrServiceInterface {
         resolve(ok);
       };
       try {
-        probe = new Worker('data:text/javascript,self.postMessage("probe-ok")');
-        timer = setTimeout(() => finish(false), 750);
-        probe.onmessage = () => finish(true);
+        const workerUrl = chrome.runtime.getURL('tessdata/worker.min.js');
+        probe = new Worker(workerUrl);
+        timer = setTimeout(() => finish(true), 400);
         probe.onerror = () => finish(false);
       } catch {
         finish(false);
@@ -239,19 +247,6 @@ export class OCRService implements OcrServiceInterface {
         return `unavailable: ${getErrorMessage(err)}`;
       }
     })());
-
-    console.log(`[QuickCopy] [6/10] Worker-spawn probe (tests whether new Worker() is allowed in this page context):`);
-    try {
-      const probeWorker = new Worker('data:text/javascript,self.close()');
-      console.log(`[QuickCopy] [6/10] new Worker(data:) SUCCEEDED (no CSP/TrustedTypes restriction)`);
-      setTimeout(() => { try { probeWorker.terminate(); } catch { /* noop */ } }, 0);
-    } catch (probeErr) {
-      console.error(`[QuickCopy] [6/10] new Worker(data:) THREW`, {
-        message: getErrorMessage(probeErr),
-        stack: getErrorStack(probeErr),
-        constructorName: probeErr?.constructor?.name ?? 'N/A',
-      });
-    }
 
     console.log(`[QuickCopy] [6/10] Verifying tessdata assets...`);
     try {

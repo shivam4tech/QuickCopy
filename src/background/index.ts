@@ -126,10 +126,25 @@ function relayToOffscreen(
   message: ExtensionMessage,
   sendResponse: (response: MessageResponse) => void,
 ): void {
+  const RELAY_TIMEOUT_MS = 65000;
+  let responded = false;
+
+  const safeRespond = (resp: MessageResponse) => {
+    if (responded) return;
+    responded = true;
+    sendResponse(resp);
+  };
+
+  const timer = setTimeout(() => {
+    console.error(`[QuickCopy:Background] Offscreen relay TIMEOUT (${RELAY_TIMEOUT_MS}ms) for ${message.type}`);
+    safeRespond({ success: false, error: 'Offscreen relay timed out' } as MessageResponse);
+  }, RELAY_TIMEOUT_MS);
+
   ensureOffscreenDocument()
     .then((ok) => {
       if (!ok) {
-        sendResponse({ success: false, mode: 'local', reason: 'worker-unavailable' } as unknown as MessageResponse);
+        clearTimeout(timer);
+        safeRespond({ success: false, mode: 'local', reason: 'worker-unavailable' } as unknown as MessageResponse);
         return;
       }
       return chrome.runtime.sendMessage({
@@ -139,15 +154,17 @@ function relayToOffscreen(
       } as ExtensionMessage);
     })
     .then((resp) => {
+      clearTimeout(timer);
       if (resp) {
-        sendResponse(resp as MessageResponse);
+        safeRespond(resp as MessageResponse);
       } else {
-        sendResponse({ success: false, error: 'Offscreen host did not respond' } as MessageResponse);
+        safeRespond({ success: false, error: 'Offscreen host did not respond' } as MessageResponse);
       }
     })
     .catch((err) => {
+      clearTimeout(timer);
       console.error(`[QuickCopy:Background] Offscreen relay FAILED`, getErrorMessage(err));
-      sendResponse({ success: false, error: `Offscreen relay failed: ${getErrorMessage(err)}` } as MessageResponse);
+      safeRespond({ success: false, error: `Offscreen relay failed: ${getErrorMessage(err)}` } as MessageResponse);
     });
 }
 
