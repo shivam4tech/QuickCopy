@@ -3,7 +3,7 @@ import { getErrorMessage } from '@utils/logger';
 import type { ExtensionMessage, MessageResponse } from '@type/messages';
 import type { OcrLanguage } from '@type/index';
 
-const OCR_RECOGNIZE_TIMEOUT_MS = 70000;
+const OCR_RECOGNIZE_TIMEOUT_MS = 5000;
 
 export function handleOcrMessage(
   message: ExtensionMessage,

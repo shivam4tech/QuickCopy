@@ -291,22 +291,5 @@ export class OverlayManager {
 
     ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
     ctx.fillRect(region.x, region.y, region.width, region.height);
-
-    const label = `${region.width} × ${region.height}`;
-    ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-
-    const textMetrics = ctx.measureText(label);
-    const padX = 8;
-    const padY = 4;
-    const labelX = region.x;
-    const labelY = region.y + region.height + 4;
-
-    ctx.fillStyle = '#161b22';
-    ctx.fillRect(labelX - padX, labelY - padY, textMetrics.width + padX * 2, 20);
-
-    ctx.fillStyle = '#8b949e';
-    ctx.fillText(label, labelX, labelY);
   }
 }

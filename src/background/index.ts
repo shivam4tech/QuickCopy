@@ -126,7 +126,7 @@ function relayToOffscreen(
   message: ExtensionMessage,
   sendResponse: (response: MessageResponse) => void,
 ): void {
-  const RELAY_TIMEOUT_MS = 65000;
+  const RELAY_TIMEOUT_MS = 5000;
   let responded = false;
 
   const safeRespond = (resp: MessageResponse) => {

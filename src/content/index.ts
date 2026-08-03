@@ -90,6 +90,11 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const captureResult = await captureService.captureRegion(region);
     console.log(`[QuickCopy] Capture done in ${Math.round(performance.now() - captureStart)}ms`);
 
+    // Sidebar mounts after capture completes (not during drag)
+    if (currentSettings.showPanel) {
+      await ensureSidebar();
+    }
+
     // Run emoji detection on the ORIGINAL color image in parallel with OCR
     // (preprocessing converts to grayscale, which would destroy color info).
     const emojiPromise = emojiService.detect(captureResult.dataUrl).catch(() => [] as Awaited<ReturnType<typeof emojiService.detect>>);
@@ -197,15 +202,16 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
     return;
   }
 
+  // Close the sidebar if it was showing a prior result — it will be re-opened
+  // after the new drag finishes.
+  if (sidebarVisible) {
+    closeSidebar();
+  }
+
   pipelineLock = true;
   setPipelineState('selecting');
 
   try {
-    if (currentSettings.showPanel) {
-      await ensureSidebar();
-    } else {
-      console.log(`[QuickCopy] Panel auto-show disabled — copying silently`);
-    }
     overlay.show({
       onComplete: (region) => {
         handleRegionSelected(region);
@@ -216,8 +222,6 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
         logger.debug('Selection cancelled');
       },
     });
-
-    raiseSidebarToTop();
 
     if (clientX != null && clientY != null) {
       overlay.startSelection(clientX, clientY);

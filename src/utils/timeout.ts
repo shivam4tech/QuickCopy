@@ -12,7 +12,7 @@ export async function timeoutCapture(promise: Promise<unknown>): Promise<unknown
 }
 
 export async function timeoutOCR(promise: Promise<unknown>): Promise<unknown> {
-  return withTimeout(promise, 60000, 'OCR');
+  return withTimeout(promise, 5000, 'OCR');
 }
 
 export async function timeoutClipboard(promise: Promise<unknown>): Promise<unknown> {

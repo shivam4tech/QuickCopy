@@ -50,7 +50,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [copying, setCopying] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const setBusy = useState(false)[1];
   const [status, setStatus] = useState<{ label: string; variant: StatusVariant }>({
     label: 'Select text to capture',
     variant: 'info',
@@ -390,22 +390,11 @@ export function Sidebar({ onClose }: SidebarProps) {
               </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[3], padding: `${spacing[8]} ${spacing[4]}` }}>
-                {busy ? (
-                  <>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" style={{ animation: 'qc-spin 0.8s linear infinite' }}>
-                      <circle cx="12" cy="12" r="10" opacity="0.25" />
-                      <path d="M12 2a10 10 0 0 1 10 10" />
-                    </svg>
-                    <span style={{ fontSize: fontSizes.sm, color: colors.text.secondary }}>{status.label}</span>
-                  </>
-                ) : (
-                  <>
-                    <Logo size={20} color={colors.text.muted} />
-                    <span style={{ fontSize: fontSizes.sm, color: colors.text.muted, textAlign: 'center', lineHeight: 1.6 }}>
-                      Hold <b style={{ color: colors.text.secondary }}>Ctrl</b> (or <b style={{ color: colors.text.secondary }}>⌘</b>) and drag to select text
-                    </span>
-                  </>
-                )}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" style={{ animation: 'qc-spin 0.8s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" opacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" />
+                </svg>
+                <span style={{ fontSize: fontSizes.sm, color: colors.text.secondary }}>{status.label}</span>
               </div>
             )}
           </div>
