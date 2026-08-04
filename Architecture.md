@@ -2,12 +2,12 @@
 
 ## Overview
 
-QuickCopy is built around a modular, service-oriented architecture. The design prioritizes separation of concerns, testability, and the ability to replace placeholder implementations in later phases without restructuring the codebase.
+QuickCopy is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. The extension also includes emoji detection via pixel-level template matching.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                     Popup / Options                  │
-│                  (React SPA entry points)            │
+│                   Popup / Options                    │
+│                (React SPA entry points)              │
 └──────────────┬──────────────────────┬───────────────┘
                │                      │
                ▼                      ▼
@@ -17,30 +17,34 @@ QuickCopy is built around a modular, service-oriented architecture. The design p
 │   ┌───────────────────┐ │  │  ┌───────────────────┐  │
 │   │ ShortcutManager   │ │  │  │ OverlayManager    │  │
 │   │ ThemeManager      │ │  │  │ Sidebar (React)   │  │
-│   └───────────────────┘ │  │  └───────────────────┘  │
-└──────────┬──────────────┘  └──────────┬──────────────┘
-           │                            │
-           ▼                            ▼
-┌─────────────────────────────────────────────────────┐
-│                   Service Layer                      │
-│  ┌────────────┐  ┌──────────┐  ┌─────────────────┐  │
+│   │ BackgroundOcrMgr  │ │  │  └───────────────────┘  │
+│   └───────────────────┘ │  └──────────┬──────────────┘
+└──────────┬──────────────┘            │
+           │                           │
+           ▼                           ▼
+┌──────────────────────────────────────────────────────┐
+│                    Service Layer                      │
+│  ┌────────────┐  ┌──────────┐  ┌──────────────────┐  │
 │  │ OCRService │  │ Capture  │  │ ClipboardService │  │
-│  │ (Phase 2)  │  │ Service  │  │ (Phase 2)       │  │
-│  │            │  │ (Ph. 2)  │  │                  │  │
+│  │            │  │ Service  │  │                  │  │
 │  └────────────┘  └──────────┘  └──────────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                  │
+│  │ Preprocess   │  │ PostProcess  │                  │
+│  │ Service      │  │ Service      │                  │
+│  └──────────────┘  └──────────────┘                  │
 │  ┌─────────────────────────────────────────────────┐ │
 │  │ SettingsService (fully working)                 │ │
 │  └─────────────────────────────────────────────────┘ │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
-┌─────────────────────────────────────────────────────┐
-│                Compatibility Layer                    │
+┌──────────────────────────────────────────────────────┐
+│               Compatibility Layer                     │
 │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
 │  │  Storage │  │ Messaging │  │ Tabs, Commands,   │  │
 │  │  Compat  │  │  Compat   │  │ ContextMenus      │  │
 │  └──────────┘  └──────────┘  └───────────────────┘  │
-└─────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────┘
 ```
 
 ## Key Architecture Decisions
@@ -49,24 +53,19 @@ QuickCopy is built around a modular, service-oriented architecture. The design p
 
 **Problem**: Chrome, Firefox, Edge, and Brave use different namespaces (`chrome.*` vs `browser.*`) and have API differences.
 
-**Solution**: All browser API access goes through `src/compat/` modules. Each module (storage, messaging, tabs, etc.) wraps the native API and exposes a consistent interface. If a browser-specific code path is required, it lives exclusively inside these modules.
+**Solution**: All browser API access goes through `src/compat/` modules. Each module (storage, messaging, tabs, etc.) wraps the native API and exposes a consistent interface.
 
-**Pattern**: The `BrowserCompat` class detects the browser at runtime and exposes this information. Individual compat modules use this to make branching decisions internally.
+**Pattern**: The `BrowserCompat` class detects the browser at runtime. Individual compat modules use this for branching decisions.
 
 **Exception**: Only files in `src/compat/` should reference `chrome.*` or `browser.*` directly.
 
-### 2. Service Layer with Dependency Injection
+### 2. Dual-Engine OCR Routing
 
-**Problem**: Services like OCR and clipboard are stubs in Phase 1. Their implementations must be replaceable without touching the rest of the codebase.
+Two OCR engines are available:
+- **Tesseract.js** — general-purpose text OCR
+- **PP-OCRv5 (CodeOCR)** — code-optimized engine via `@ocr-web/core`
 
-**Solution**: Each service is a singleton class behind an interface (defined in `src/types/services.ts`). Phase 2 will implement the real logic inside the same class structure. The consumer code never imports implementation details — it always imports the service singleton.
-
-```
-src/services/OCRService.ts        ← Phase 1: placeholder
-src/services/OCRService.ts        ← Phase 2: real Tesseract.js integration
-```
-
-No other file needs to change.
+Both paths are managed by `OCRManager`, which analyzes the image features (text vs code) and routes accordingly. The router has a quality-gated retry: if Tesseract produces low-confidence output on an uncertain image, it retries with CodeOCR.
 
 ### 3. Event Bus for Decoupled Communication
 
@@ -78,7 +77,7 @@ No other file needs to change.
 
 **Problem**: Inline styles cause inconsistency and maintenance burden.
 
-**Solution**: A centralized design system (`src/styles/designSystem.ts`) exports color palettes, spacing, typography, and animation tokens as TypeScript constants. UI components reference these tokens exclusively. CSS custom properties in `global.css` mirror the same tokens for selectors and third-party use.
+**Solution**: A centralized design system (`src/styles/designSystem.ts`) exports color palettes, spacing, typography, and animation tokens as TypeScript constants. UI components reference these tokens exclusively.
 
 ### 5. Shadow DOM Isolation
 
@@ -86,117 +85,167 @@ No other file needs to change.
 
 **Solution**: Both the overlay and sidebar elements are created inside closed Shadow DOMs. This guarantees that QuickCopy's styles never leak into the host page, and host page styles never affect QuickCopy's UI.
 
----
+## Browser-Specific Handling
+
+### Chrome (MV3)
+- Service worker **cannot** construct `Worker`s → `typeof Worker === 'undefined'` in the background
+- OCR runs in an **offscreen document** created at warm-up
+- `relayToOffscreen()` proxies `ocr:init`, `ocr:recognize`, `ocr:terminate`, and `clipboard:write` messages to the offscreen document
+- The offscreen document has its own `backgroundOcrManager` singleton with a dedicated Tesseract worker
+- Extension CSP: `script-src 'self' 'wasm-unsafe-eval'` — allows WASM in workers
+
+### Firefox (MV3)
+- **Can** construct Workers in the background/service worker → `typeof Worker !== 'undefined'`
+- Content script can spawn in-page `data:`/blob workers → **local OCR** used
+- If background worker is unavailable, falls through to offscreen (Firefox supports `chrome.offscreen` since FF 109)
 
 ## Data Flow
 
-### Capture Flow (Phase 2+)
+### Capture Flow
 
 ```
-User presses Alt+Shift+C
+User holds Ctrl + mouse-drag (or Alt+Shift+C)
        │
        ▼
-ShortcutManager (background) emits 'shortcut:triggered'
+mousedownHandler (content/index.ts:236)
+  - e.ctrlKey || e.metaKey → preventDefault
+  - Calls beginSelection(clientX, clientY)
        │
        ▼
-Background sends 'overlay:show' message to content script
+beginSelection (content/index.ts:191)
+  - Sets pipelineLock = true
+  - Closes any visible sidebar from prior capture
+  - Shows transparent crosshair overlay
        │
        ▼
-OverlayManager.show() — transparent crosshair overlay appears
+OverlayManager: user drags → renders selection rectangle
        │
        ▼
-User drags to select region
+mouseup → completeSelection (OverlayManager.ts:198)
+  - Region must be >= 10×10px, else cancel
+  - Fires onComplete(region) callback
        │
        ▼
-CaptureService.captureRegion() — captures screenshot of region
+handleRegionSelected (content/index.ts:77)
+  - captureService.captureRegion(region)
+  │   ├── Sends capture:viewport to background
+  │   │     └── background: chrome.tabs.captureVisibleTab (15s timeout)
+  │   └── Crops full screenshot to region (canvas drawImage)
+  │
+  ├── Mount sidebar (if showPanel setting)
+  ├── EmojiService.detect(dataUrl) ← runs in parallel, best-effort
+  ├── PreprocessingService.preprocess(dataUrl, 2x) — upscale + grayscale
+  ├── OCRService.recognize(preprocessed.dataUrl)
+  │   ├── Initialize: local worker probe → background mode in Chrome
+  │   ├── Recognize via background relay (Chrome) or local OCRManager (Firefox)
+  │   └── Returns OcrResult
+  ├── Await emojiPromise → applyEmojiDetections
+  ├── PostProcessingService.process(result) — 11-stage pipeline
+  ├── ClipboardService.copy(cleanedResult.text)
+  │   ├── prepareCopyText → applyAppendNewline
+  │   ├── tryBackgroundCopy → clipboard:write → offscreen
+  │   └── Fallback: navigator.clipboard.writeText → execCommand
+  └── Sidebar shows result + "Copied!" status
        │
        ▼
-OCRService.recognize() — runs Tesseract.js on image data
-       │
-       ▼
-ClipboardService.copy() — writes recognized text to clipboard
-       │
-       ▼
-Sidebar shows result (optional confirmation)
+  Auto-dismiss after sidebarDuration (default 10s)
+  Or user starts new drag → previous sidebar closed immediately
 ```
 
-### Settings Flow
+### Offscreen Document Flow (Chrome-specific)
 
 ```
-Popup/Options reads/writes settings
+Background warm-up (index.ts:65)
+  - ensureOffscreenDocument()
+  - Creates chrome.offscreen document at /src/offscreen/index.html
        │
        ▼
-SettingsService persists via browserStorage (compat layer)
+Offscreen document loads (offscreen/ocr.ts)
+  - backgroundOcrManager.init() → creates Tesseract worker
+  - Registers chrome.runtime.onMessage listener
        │
        ▼
-EventBus emits 'settings:changed'
+Content sends ocr:init → background → relayToOffscreen → offscreen
+  - backgroundOcrManager.getStatus() === 'ready'
+  → { success: true, mode: 'background' }
        │
        ▼
-Background/Content listeners react to changes
+Content sends ocr:recognize → background → relayToOffscreen → offscreen
+  - backgroundOcrManager.recognize(imageData)
+  → recognizeWithWorker (direct Tesseract, no CodeOCR routing)
+       │
+       ▼
+Content receives result → pipeline continues
 ```
 
----
+### Timeout Hierarchy
 
-## How to Implement Phase 2 (OCR Integration)
+Every async operation has a timeout so the pipeline can never hang:
 
-Phase 2 requires implementing only these files:
+| Stage | Timeout | File |
+|-------|---------|------|
+| Capture (captureVisibleTab) | 10s | background/index.ts |
+| Image crop | 15s | CaptureService.ts |
+| OCR init probe | 3s first, 20s polling | OCRService.ts |
+| Local OCR worker init | 30s | OCRService.ts |
+| OCRManager Tesseract recognize | 5s | OCRManager.ts |
+| Offscreen relay message | 5s | background/index.ts |
+| Offscreen OCR handler | 5s | ocrHost.ts |
+| timeoutOCR (worker.recognize) | 5s | utils/timeout.ts |
+| Clipboard (navigator clipboard) | 5s | utils/timeout.ts |
 
-### 1. `src/services/OCRService.ts`
+## Key Files
 
-Replace the placeholder `recognize()` method with actual Tesseract.js integration:
+### Background (`src/background/`)
+- **index.ts** — Service worker entry. Routes messages, handles `capture:viewport`, relays OCR/clipboard to offscreen
+- **ocrHost.ts** — Handles `ocr:init`, `ocr:recognize`, `ocr:terminate` messages (used by both background and offscreen)
+- **clipboardHost.ts** — Handles `clipboard:write` in background/offscreen
+- **offscreenHost.ts** — Creates/reuses offscreen document via `chrome.offscreen.createDocument`
+- **managers/BackgroundOcrManager.ts** — Tesseract worker lifecycle + recognition in offscreen document
+- **managers/ShortcutManager.ts** — Keyboard shortcut registration (`Alt+Shift+C`, `Alt+Shift+S`)
+- **managers/ThemeManager.ts** — Dark/light/system theme broadcasting
 
-```typescript
-import Tesseract from 'tesseract.js';
+### Content (`src/content/`)
+- **index.ts** — Pipeline orchestration: capture → OCR → postprocess → clipboard
+- **overlay/OverlayManager.ts** — Full-page canvas with crosshair for region selection
+- **sidebar/Sidebar.tsx** — React sidebar showing OCR output, edit, copy
+- **sidebar/index.ts** — Shadow DOM mount/unmount for the React sidebar
 
-async recognize(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
-  const result = await Tesseract.recognize(imageData, language ?? 'eng');
-  return {
-    text: result.data.text,
-    confidence: result.data.confidence,
-    blocks: result.data.blocks.map(b => ({
-      text: b.text,
-      confidence: b.confidence,
-      bbox: { x: b.bbox.x0, y: b.bbox.y0, width: b.bbox.x1 - b.bbox.x0, height: b.bbox.y1 - b.bbox.y0 },
-    })),
-    language: language ?? 'eng',
-    duration: result.data.timing,
-  };
-}
-```
+### Services (`src/services/`)
+- **OCRService.ts** — Content-side OCR with local/background mode, worker management
+- **CaptureService.ts** — Screenshot via background relay → canvas crop
+- **PreprocessingService.ts** — 2x upscale + adaptive grayscale/binarization
+- **PostProcessingService.ts** — Pipeline orchestrator for 11 postprocessing stages
+- **ClipboardService.ts** — Clipboard write with background relay, newline toggle
 
-### 2. `src/services/CaptureService.ts`
+### OCR Subsystem (`src/services/ocr/`)
+- **OCRManager.ts** — Dual-engine router with quality-gated retry
+- **geometry.ts** — Tesseract block flattening
+- **image.ts** — Data URL → RGBA decoder
+- **router/OCRRouter.ts** — Routing decision from text/code scores
+- **router/ImageAnalyzer.ts** — Image feature extraction (Otsu, line bands, margins)
+- **providers/CodeOCRProvider.ts** — PP-OCRv5 engine (lazy, ~15MB model download)
+- **quality/QualityScorer.ts** — Output quality assessment for retry
 
-Implement screenshot capture using the Chrome tabs API (`chrome.tabs.captureVisibleTab`) or HTML Canvas for region extraction.
+### Emoji Subsystem (`src/services/ocr/emoji/`)
+- **EmojiService.ts** — Detection pipeline
+- **EmojiCatalog.ts** — Pre-rendered 1141-emoji catalog
+- **geometry.ts** — Color mask, connected components, thumbnail extraction
+- **match.ts** — Shape IoU + color histogram matching
+- **apply.ts** — Splice detections into OcrResult
+- **emojiSet.ts** — Emoji candidate list
 
-### 3. `src/services/ClipboardService.ts`
+### Postprocessing (`src/services/postprocessing/`)
+- **Pipeline.ts** — 11-stage sequential pipeline
+- **ContentDetector.ts** — Content type / language detection
+- **stages/ValidationStage.ts** — Quality scoring
+- **stages/CodeFormattingStage.ts** — Indentation recovery + formatting
+- **code/CodeFormatter.ts** — Full code formatter (indentation, line reconstruction, balancing)
+- **code/BraceRecovery.ts** — Allman brace recovery from OCR geometry
 
-Implement clipboard write using `navigator.clipboard.writeText()` or the execCommand fallback.
-
-### 4. `src/content/index.ts` (minor)
-
-Wire the `capture-region` shortcut to the capture-flow sequence.
-
-**No structural changes required.** The architecture already accounts for all these integrations.
-
-## How to Implement Phase 3 (Smart Formatting)
-
-Phase 3 adds smart formatting on top of Phase 2's OCR output:
-
-### `src/services/FormatterService.ts` (new)
-
-```typescript
-class FormatterService {
-  formatText(raw: OcrResult, behavior: CopyBehavior): FormattedText {
-    switch (behavior) {
-      case 'code':
-        return this.detectAndFormatCode(raw);
-      case 'table':
-        return this.detectAndFormatTable(raw);
-      case 'smart':
-        return this.autoDetectFormat(raw);
-    }
-  }
-}
-```
-
-The `ClipboardService.copy()` method already accepts a `CopyBehavior` parameter, so Phase 3 simply plugs into the existing flow without modifying any architecture.
+### Compatibility (`src/compat/`)
+- **storage.ts** — `chrome.storage` wrapper with onChanged fallback
+- **messaging.ts** — `chrome.runtime` messaging wrapper
+- **tabs.ts** — `chrome.tabs` wrapper
+- **commands.ts** — `chrome.commands` wrapper
+- **contextMenus.ts** — `chrome.contextMenus` wrapper

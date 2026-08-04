@@ -193,7 +193,7 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
     console.log(`[QuickCopy] Pipeline locked, ignoring selection`);
     return;
   }
-  if (pipelineState !== 'idle' && pipelineState !== 'completed' && pipelineState !== 'failed') {
+  if (pipelineState !== 'idle' && pipelineState !== 'completed' && pipelineState !== 'failed' && pipelineState !== 'cancelled') {
     console.log(`[QuickCopy] Pipeline busy (${pipelineState}), ignoring selection`);
     return;
   }
