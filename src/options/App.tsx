@@ -364,7 +364,6 @@ export function App() {
                 options={[
                   { label: 'Automatic (recommended)', value: 'auto' },
                   { label: 'Text only', value: 'text' },
-                  { label: 'Automatic + debug info', value: 'debug' },
                 ]}
               />
             </div>
@@ -473,6 +472,33 @@ export function App() {
               <Switch
                 checked={settings.showPanel}
                 onChange={(checked) => updateSetting('showPanel', checked)}
+              />
+            </div>
+            <div style={styles.settingRow}>
+              <div
+                style={{
+                  ...styles.settingText,
+                  opacity: settings.showPanel ? 1 : 0.45,
+                }}
+              >
+                <div style={styles.settingLabel}>Close result window after</div>
+                <div style={styles.settingDesc}>
+                  Closes the result window a while after copying finishes.
+                </div>
+              </div>
+              <Select
+                value={settings.panelDismissSeconds.toString()}
+                onChange={(v) => updateSetting('panelDismissSeconds', Number(v))}
+                disabled={!settings.showPanel}
+                options={[
+                  { label: 'Never (stay open)', value: '0' },
+                  { label: '2 seconds', value: '2' },
+                  { label: '5 seconds', value: '5' },
+                  { label: '10 seconds', value: '10' },
+                  { label: '15 seconds', value: '15' },
+                  { label: '30 seconds', value: '30' },
+                  { label: '1 minute', value: '60' },
+                ]}
               />
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>

@@ -12,6 +12,8 @@ export interface ExtensionSettings {
   /** When on, copied text always ends with a newline; when off, trailing newlines are stripped */
   appendNewline: boolean;
   showPanel: boolean;
+  /** Seconds the result window stays open after copying finishes (0 = stay open) */
+  panelDismissSeconds: number;
   showConfirmation: boolean;
   enableContextMenu: boolean;
   privacyMode: boolean;
@@ -41,6 +43,7 @@ export const defaultSettings: ExtensionSettings = {
   autoCopy: true,
   appendNewline: true,
   showPanel: true,
+  panelDismissSeconds: 5,
   showConfirmation: true,
   enableContextMenu: true,
   privacyMode: false,

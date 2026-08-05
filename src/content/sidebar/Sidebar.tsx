@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { colors, spacing, radius, fonts, fontSizes, fontWeights, shadows, animation } from '@styles/designSystem';
 import { Button } from '@components/ui/Button';
 import { eventBus } from '@utils/eventBus';
+import { STORAGE_KEYS } from '@shared/constants';
+import { defaultSettings, type ExtensionSettings } from '@type/settings';
 import type { OcrResult } from '@type/index';
 import { clipboardService } from '@services/ClipboardService';
 
@@ -130,9 +132,21 @@ export function Sidebar({ onClose }: SidebarProps) {
       if (success) {
         setStatus({ label: 'Copied!', variant: 'success' });
         clearDismissTimerRef();
-        dismissTimer.current = setTimeout(() => {
-          if (!editingRef.current) handleClose();
-        }, 5000);
+        void chrome.storage.local
+          .get({ [STORAGE_KEYS.SETTINGS]: defaultSettings })
+          .then((res) => {
+            const settings = res[STORAGE_KEYS.SETTINGS] as ExtensionSettings;
+            const seconds = settings.panelDismissSeconds > 0 ? settings.panelDismissSeconds : 0;
+            if (seconds === 0) return;
+            dismissTimer.current = setTimeout(() => {
+              if (!editingRef.current) handleClose();
+            }, seconds * 1000);
+          })
+          .catch(() => {
+            dismissTimer.current = setTimeout(() => {
+              if (!editingRef.current) handleClose();
+            }, 5000);
+          });
       }
     });
 
