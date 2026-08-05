@@ -17,6 +17,11 @@ import type { Region } from '@type/index';
 import { languageManager } from '@services/ocr/LanguageManager';
 import type { LanguagesGetDataResponse } from '@type/messages';
 import { base64ToUint8Array } from '@utils/encoding';
+import { enableTrustedTypesWorkers } from '@utils/trustedTypes';
+
+// Patch Worker before anything else can spawn one: pages with Trusted Types
+// policies (report-only or enforced) otherwise flag the OCR worker's blob URL.
+enableTrustedTypesWorkers();
 
 type PipelineState = 'idle' | 'selecting' | 'capturing' | 'preprocessing' | 'ocr_init' | 'ocr_recognizing' | 'postprocessing' | 'completed' | 'failed' | 'cancelled';
 
