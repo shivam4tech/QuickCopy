@@ -8,7 +8,6 @@ import { preprocessingService } from '@services/PreprocessingService';
 import { ocrService } from '@services/OCRService';
 import { clipboardService } from '@services/ClipboardService';
 import { postProcessingService } from '@services/PostProcessingService';
-import { emojiService, applyEmojiDetections } from '@services/ocr/emoji';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import { STORAGE_KEYS } from '@shared/constants';
 import { defaultSettings } from '@type/settings';
@@ -184,10 +183,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
       await ensureSidebar();
     }
 
-    // Run emoji detection on the ORIGINAL color image in parallel with OCR
-    // (preprocessing converts to grayscale, which would destroy color info).
-    const emojiPromise = emojiService.detect(captureResult.dataUrl).catch(() => [] as Awaited<ReturnType<typeof emojiService.detect>>);
-
+    // Run OCR on the preprocessed image
     setPipelineState('preprocessing');
     const preprocessStart = performance.now();
     const preprocessed = await preprocessingService.preprocess(captureResult.dataUrl, 2);
@@ -204,17 +200,11 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const ocrResult = await ocrService.recognize(preprocessed.dataUrl);
     console.log(`[QuickCopy] OCR done in ${Math.round(performance.now() - ocrStart)}ms`);
 
-    const emojis = await emojiPromise;
-    const emojiAwareResult = emojis.length > 0 ? applyEmojiDetections(ocrResult, emojis) : ocrResult;
-    if (emojis.length > 0) {
-      console.log(`[QuickCopy] Detected ${emojis.length} emoji: ${emojis.map((e) => e.text).join(' ')}`);
-    }
-
     setPipelineState('postprocessing');
     console.log(`[QuickCopy] [8/10] Post-processing started`);
     const postStart = performance.now();
     eventBus.emit('postprocessing:started', undefined);
-    const cleanedResult = await postProcessingService.process(emojiAwareResult);
+    const cleanedResult = await postProcessingService.process(ocrResult);
     console.log(`[QuickCopy] [8/10] Post-processing complete ✓`, {
       textLength: cleanedResult.text.length,
       repairCount: cleanedResult.repairCount,

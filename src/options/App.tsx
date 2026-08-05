@@ -96,16 +96,27 @@ const styles = {
     fontSize: fontSizes.xs,
     color: colors.text.muted,
   } as const,
+  setAdditionalBtn: {
+    background: 'none',
+    border: `1px solid ${colors.border.default}`,
+    color: colors.accent.primary,
+    fontSize: fontSizes.xs,
+    cursor: 'pointer',
+    padding: `${spacing[1]} ${spacing[2.5]}`,
+    borderRadius: '6px',
+    fontFamily: 'inherit',
+    minHeight: 32,
+    transition: 'border-color 100ms ease',
+  } as const,
   removeBtn: {
     background: 'none',
     border: 'none',
-    color: colors.text.muted,
+    color: colors.accent.error,
     fontSize: fontSizes.sm,
     cursor: 'pointer',
     padding: `${spacing[1.5]} ${spacing[2]}`,
     borderRadius: '6px',
     fontFamily: 'inherit',
-    transition: 'color 100ms ease',
     minHeight: 36,
   } as const,
   storageLine: {
@@ -212,10 +223,13 @@ type ModalState = {
   existingLangName?: string;
 } | null;
 
-function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${bytes} B`;
+/** eng.traineddata shipped with the extension (~4.1 MB stored on device). */
+const ENGLISH_SIZE_MB = 4.1;
+
+/** Parse a catalog size string like '1.5 MB' into a decimal MB number. */
+function parseSizeMb(size: string): number {
+  const match = /^([\d.]+)\s*MB$/i.exec(size.trim());
+  return match ? parseFloat(match[1] ?? '0') : 0;
 }
 
 export function App() {
@@ -347,7 +361,15 @@ export function App() {
     ? getLanguageByCode(settings.secondaryLanguage)?.name ?? settings.secondaryLanguage
     : null;
 
-  const totalStorage = installedLanguages.reduce((sum, lang) => sum + lang.size, 0);
+  const storageMb = installedLanguages.reduce((mb, lang) => {
+    const info = getLanguageByCode(lang.code);
+    return mb + (info ? parseSizeMb(info.size) : lang.size / (1024 * 1024));
+  }, ENGLISH_SIZE_MB);
+
+  const handleSetAdditional = async (code: string) => {
+    setActionError(null);
+    await updateSetting('secondaryLanguage', code);
+  };
 
   return (
     <div style={styles.page}>
@@ -415,11 +437,13 @@ export function App() {
             <div style={styles.langRow}>
               <div style={styles.langInfo}>
                 <span style={styles.langName}>English</span>
+                <span style={styles.langSize}>{ENGLISH_SIZE_MB} MB</span>
               </div>
               <Badge>Always available</Badge>
             </div>
             {installedLanguages.map((lang) => {
               const info = getLanguageByCode(lang.code);
+              const isInUse = settings.secondaryLanguage === lang.code;
               return (
                 <div key={lang.code} style={styles.langRow}>
                   <div style={styles.langInfo}>
@@ -427,7 +451,17 @@ export function App() {
                     {info && <span style={styles.langSize}>{info.size}</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2] }}>
-                    <Badge variant="success">Downloaded</Badge>
+                    {isInUse ? (
+                      <Badge variant="success">In use</Badge>
+                    ) : (
+                      <button
+                        type="button"
+                        style={styles.setAdditionalBtn}
+                        onClick={() => handleSetAdditional(lang.code)}
+                      >
+                        Set as additional
+                      </button>
+                    )}
                     <button
                       type="button"
                       style={styles.removeBtn}
@@ -446,7 +480,7 @@ export function App() {
                 </span>
               </div>
             )}
-            <div style={styles.storageLine}>Storage used: {formatSize(totalStorage)}</div>
+            <div style={styles.storageLine}>Storage used: {storageMb.toFixed(1)} MB</div>
           </CardBody>
         </Card>
       </div>
