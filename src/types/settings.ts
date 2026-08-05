@@ -24,6 +24,8 @@ export interface ExtensionSettings {
   confidenceThreshold: number;
   /** OCR engine selection: auto routing, force text (Tesseract), force code, or auto+debug */
   ocrMode: 'auto' | 'text' | 'code' | 'debug';
+  /** Secondary OCR language code (e.g. 'deu', 'fra') or null for English-only */
+  secondaryLanguage: string | null;
 }
 
 export type SettingsKey = keyof ExtensionSettings;
@@ -50,6 +52,7 @@ export const defaultSettings: ExtensionSettings = {
   debugMode: false,
   confidenceThreshold: 60,
   ocrMode: 'auto',
+  secondaryLanguage: null,
 };
 
 export interface SettingsGroup {

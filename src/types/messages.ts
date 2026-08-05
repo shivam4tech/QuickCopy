@@ -25,6 +25,7 @@ export interface CaptureCompleteMessage extends MessageBase {
 
 export interface OcrInitMessage extends MessageBase {
   type: 'ocr:init';
+  language?: string;
 }
 
 export interface OcrRecognizeMessage extends MessageBase {
@@ -123,6 +124,19 @@ export interface DiagnosticLogMessage extends MessageBase {
   payload: Record<string, unknown>;
 }
 
+export interface LanguagesGetDataMessage extends MessageBase {
+  type: 'languages:get-data';
+  code: string;
+}
+
+export interface LanguagesGetDataResponse {
+  success: boolean;
+  /** Base64-encoded traineddata — runtime messaging JSON-serializes, so raw bytes are unsafe. */
+  dataBase64?: string;
+  size?: number;
+  error?: string;
+}
+
 export type ExtensionMessage =
   | CaptureRegionMessage
   | CaptureViewportMessage
@@ -143,7 +157,8 @@ export type ExtensionMessage =
   | ThemeChangedMessage
   | ShortcutTriggeredMessage
   | StatusUpdateMessage
-  | DiagnosticLogMessage;
+  | DiagnosticLogMessage
+  | LanguagesGetDataMessage;
 
 export type MessageHandler<T = unknown> = (
   message: ExtensionMessage,

@@ -11,7 +11,10 @@ import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import type { ExtensionMessage, MessageResponse } from '@type/messages';
 import type { ThemeMode } from '@type/index';
+import type { LanguagesGetDataMessage, LanguagesGetDataResponse } from '@type/messages';
+import { languageManager } from '@services/ocr/LanguageManager';
 import { browserMessaging } from '@compat/messaging';
+import { arrayBufferToBase64 } from '@utils/encoding';
 
 console.log(`[QuickCopy:Background] Service worker starting... (build: ${__BUILD_ID__})`);
 
@@ -197,6 +200,21 @@ chrome.runtime.onMessage.addListener((
   if (message.type === 'diag:log') {
     console.log(`[QuickCopy:Background:diag] ${message.label}`, message.payload);
     sendResponse({ success: true });
+    return true;
+  }
+  if (message.type === 'languages:get-data') {
+    const { code } = message as LanguagesGetDataMessage;
+    languageManager.getTraineddata(code)
+      .then((data) => {
+        const resp: LanguagesGetDataResponse = data
+          ? { success: true, dataBase64: arrayBufferToBase64(data), size: data.length }
+          : { success: false, error: `Language ${code} is not in the store` };
+        sendResponse(resp as MessageResponse);
+      })
+      .catch((err) => {
+        console.error(`[QuickCopy:Background] languages:get-data failed for ${code}`, err);
+        sendResponse({ success: false, error: getErrorMessage(err) } as MessageResponse);
+      });
     return true;
   }
   sendResponse({ success: true });

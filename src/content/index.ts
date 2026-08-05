@@ -14,6 +14,9 @@ import { STORAGE_KEYS } from '@shared/constants';
 import { defaultSettings } from '@type/settings';
 import type { ExtensionSettings } from '@type/settings';
 import type { Region } from '@type/index';
+import { languageManager } from '@services/ocr/LanguageManager';
+import type { LanguagesGetDataResponse } from '@type/messages';
+import { base64ToUint8Array } from '@utils/encoding';
 
 type PipelineState = 'idle' | 'selecting' | 'capturing' | 'preprocessing' | 'ocr_init' | 'ocr_recognizing' | 'postprocessing' | 'completed' | 'failed' | 'cancelled';
 
@@ -25,6 +28,7 @@ let pipelineState: PipelineState = 'idle';
 let pipelineLock = false;
 let disposed = false;
 const cleanupFns: (() => void)[] = [];
+let lastSyncedSecondary: string | null | undefined = undefined;
 
 function isExtensionContextValid(): boolean {
   try {
@@ -44,15 +48,95 @@ async function loadSettings(): Promise<void> {
   }
 }
 
+async function syncSecondaryLanguage(code: string | null): Promise<void> {
+  if (disposed || lastSyncedSecondary === code) return;
+
+  if (!code) {
+    if (lastSyncedSecondary) {
+      await languageManager.removeLanguage(lastSyncedSecondary);
+      console.log(`[Language] Purged local cache for ${lastSyncedSecondary}`);
+    }
+    lastSyncedSecondary = null;
+    return;
+  }
+
+  if (await languageManager.isLanguageInstalled(code)) {
+    console.log(`[Language] ${code} already in local cache`);
+    lastSyncedSecondary = code;
+    return;
+  }
+
+  const resp = await browserMessaging.sendMessage<LanguagesGetDataResponse>({
+    type: 'languages:get-data',
+    code,
+    source: 'content',
+    target: 'background',
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+  }).catch(() => undefined);
+
+  if (resp?.success && resp.dataBase64) {
+    const data = base64ToUint8Array(resp.dataBase64);
+    if (data && data.length === (resp.size ?? data.length)) {
+      await languageManager.storeLanguage(code, data);
+      console.log(`[Language] Synced ${code} (${data.length} bytes) to page cache`);
+    } else {
+      await languageManager.removeLanguage(code);
+      console.warn(`[Language] Corrupt traineddata received for ${code} — English only`);
+    }
+  } else {
+    await languageManager.removeLanguage(code);
+    console.warn(`[Language] ${code} not available in extension store — English only`);
+  }
+  lastSyncedSecondary = code;
+}
+
+/**
+ * Always make English available to the page-local worker by seeding the
+ * bundled eng.traineddata into the page IndexedDB (same cache the worker
+ * reads). Without this, local OCR relies on a cross-origin fetch of the
+ * extension asset, which some page CSPs block.
+ */
+async function syncEnglishIntoPageCache(): Promise<void> {
+  if (disposed) return;
+  if (await languageManager.isLanguageInstalled('eng')) {
+    console.log(`[Language] eng already in local cache`);
+    return;
+  }
+  try {
+    const resp = await fetch(chrome.runtime.getURL('tessdata/eng.traineddata'));
+    if (!resp.ok) {
+      console.warn(`[Language] eng.traineddata fetch failed (${resp.status})`);
+      return;
+    }
+    const data = new Uint8Array(await resp.arrayBuffer());
+    await languageManager.storeLanguage('eng', data);
+    console.log(`[Language] Seeded eng into page cache (${data.length} bytes)`);
+  } catch (err) {
+    console.warn(`[Language] eng seed failed`, getErrorMessage(err));
+  }
+}
+
 function handleSettingsChanged(changes: { [key: string]: chrome.storage.StorageChange }, areaName: string): void {
   if (areaName !== 'local') return;
   const change = changes[STORAGE_KEYS.SETTINGS];
   if (change?.newValue) {
+    const oldSecondary = currentSettings.secondaryLanguage;
     currentSettings = { ...defaultSettings, ...(change.newValue as ExtensionSettings) };
+    const newSecondary = currentSettings.secondaryLanguage;
+    if (oldSecondary !== newSecondary) {
+      console.log(`[QuickCopy] Secondary language changed: ${oldSecondary} → ${newSecondary}`);
+      void syncSecondaryLanguage(newSecondary)
+        .catch((err) => console.warn(`[QuickCopy] Secondary language sync failed`, err))
+        .then(() => ocrService.rebuildWorker().catch(() => {}));
+    }
   }
 }
 
-void loadSettings();
+void loadSettings().then(() => {
+  void syncEnglishIntoPageCache().catch(() => {});
+  void syncSecondaryLanguage(currentSettings.secondaryLanguage).catch(() => {});
+});
 chrome.storage.onChanged.addListener(handleSettingsChanged);
 cleanupFns.push(() => chrome.storage.onChanged.removeListener(handleSettingsChanged));
 
