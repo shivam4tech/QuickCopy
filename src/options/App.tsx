@@ -200,27 +200,12 @@ const styles = {
     minHeight: 36,
     fontWeight: fontWeights.medium,
   } as const,
-  radioGroup: {
-    margin: `${spacing[2]} 0`,
-  } as const,
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing[2],
-    padding: `${spacing[1.5]} 0`,
-    fontSize: fontSizes.sm,
-    color: colors.text.secondary,
-    cursor: 'pointer',
-  } as const,
 };
 
 type ModalState = {
-  type: 'download' | 'switch';
   langCode: string;
   langName: string;
   langSize: string;
-  existingLang?: string;
-  existingLangName?: string;
 } | null;
 
 /** eng.traineddata shipped with the extension (~4.1 MB stored on device). */
@@ -237,7 +222,6 @@ export function App() {
   const [installedLanguages, setInstalledLanguages] = useState<InstalledLanguage[]>([]);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
-  const [switchKeep, setSwitchKeep] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
   const cancelRequested = useRef(false);
 
@@ -272,21 +256,7 @@ export function App() {
         const lang = getLanguageByCode(newCode);
         if (!lang) return;
 
-        if (currentSecondary) {
-          const existingLang = getLanguageByCode(currentSecondary);
-          setModal({
-            type: 'switch',
-            langCode: newCode,
-            langName: lang.name,
-            langSize: lang.size,
-            existingLang: currentSecondary,
-            existingLangName: existingLang?.name ?? currentSecondary,
-          });
-          return;
-        }
-
         setModal({
-          type: 'download',
           langCode: newCode,
           langName: lang.name,
           langSize: lang.size,
@@ -323,11 +293,6 @@ export function App() {
     }
 
     await updateSetting('secondaryLanguage', modal.langCode);
-
-    if (modal.type === 'switch' && modal.existingLang && !switchKeep) {
-      await languageManager.removeLanguage(modal.existingLang);
-    }
-
     await loadInstalled();
     setDownloadProgress({ status: 'complete', progress: 100 });
     window.setTimeout(closeModal, 900);
@@ -563,45 +528,13 @@ export function App() {
           <div onClick={(e) => e.stopPropagation()}>
             <Card style={styles.modalCard}>
               <CardBody>
-                {modal.type === 'download' ? (
-                  <>
-                    <div style={styles.modalTitle}>Download {modal.langName}?</div>
-                    <div style={styles.modalBody}>
-                      <div>Size: approximately {modal.langSize}</div>
-                      <div>{modal.langName} will be stored on this device.</div>
-                      <div>English will keep working.</div>
-                      <div>Reading may take a little longer with two languages.</div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={styles.modalTitle}>Switch language?</div>
-                    <div style={styles.modalBody}>
-                      <div>{modal.langName} isn't downloaded yet.</div>
-                      <div>{modal.existingLangName} is already downloaded.</div>
-                      <div style={styles.radioGroup}>
-                        <label style={styles.radioLabel}>
-                          <input
-                            type="radio"
-                            name="switch-lang"
-                            checked={switchKeep}
-                            onChange={() => setSwitchKeep(true)}
-                          />
-                          Keep {modal.existingLangName} on this device
-                        </label>
-                        <label style={styles.radioLabel}>
-                          <input
-                            type="radio"
-                            name="switch-lang"
-                            checked={!switchKeep}
-                            onChange={() => setSwitchKeep(false)}
-                          />
-                          Remove {modal.existingLangName} after {modal.langName} is ready
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div style={styles.modalTitle}>Download {modal.langName}?</div>
+                <div style={styles.modalBody}>
+                  <div>Size: approximately {modal.langSize}</div>
+                  <div>{modal.langName} will be stored on this device.</div>
+                  <div>English will keep working.</div>
+                  <div>Reading may take a little longer with two languages.</div>
+                </div>
                 {actionError && <div style={styles.modalError}>{actionError}</div>}
                 {downloadProgress && (
                   <div style={{ marginBottom: spacing[3] }}>
