@@ -2,36 +2,37 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { colors, spacing, fonts, fontSizes, fontWeights } from '@styles/designSystem';
 import { Card, CardBody } from '@components/ui/Card';
+import { Badge } from '@components/ui/Badge';
 import { Switch } from '@components/ui/Switch';
 import { Select } from '@components/ui/Select';
+import { Tooltip } from '@components/ui/Tooltip';
 import { useSettings } from '@hooks/useSettings';
 import { LANGUAGES, getLanguageByCode, type InstalledLanguage } from '@type/language';
 import { languageManager, type DownloadProgress } from '@services/ocr/LanguageManager';
 
 const styles = {
   page: {
-    maxWidth: 720,
+    maxWidth: 880,
     margin: '0 auto',
-    padding: spacing[8],
+    padding: `${spacing[12]} ${spacing[8]} ${spacing[16]}`,
     fontFamily: fonts.sans,
     color: colors.text.primary,
-    background: colors.bg.primary,
     minHeight: '100vh',
   } as const,
   header: {
-    marginBottom: spacing[8],
+    marginBottom: spacing[12],
   } as const,
   title: {
     fontSize: fontSizes['3xl'],
     fontWeight: fontWeights.bold,
-    marginBottom: spacing[1],
+    marginBottom: spacing[2],
   } as const,
   subtitle: {
     fontSize: fontSizes.base,
     color: colors.text.muted,
   } as const,
   section: {
-    marginBottom: spacing[6],
+    marginBottom: spacing[12],
   } as const,
   sectionTitle: {
     fontSize: fontSizes.xl,
@@ -47,25 +48,72 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: `${spacing[3]} 0`,
+    gap: spacing[4],
+    padding: `${spacing[4]} 0`,
     borderBottom: `1px solid ${colors.border.muted}`,
+    minHeight: 52,
+  } as const,
+  settingText: {
+    minWidth: 0,
   } as const,
   settingLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing[1.5],
     fontSize: fontSizes.base,
     fontWeight: fontWeights.medium,
   } as const,
   settingDesc: {
     fontSize: fontSizes.sm,
     color: colors.text.muted,
-    marginTop: spacing[0.5],
+    marginTop: spacing[1],
   } as const,
-  footer: {
-    marginTop: spacing[12],
-    paddingTop: spacing[6],
-    borderTop: `1px solid ${colors.border.muted}`,
-    textAlign: 'center' as const,
+  statusLine: {
+    paddingTop: spacing[3],
+    fontSize: fontSizes.xs,
+    color: colors.text.muted,
+  } as const,
+  langRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+    padding: `${spacing[3]} 0`,
+    borderBottom: `1px solid ${colors.border.muted}`,
+    minHeight: 48,
+  } as const,
+  langInfo: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: spacing[2],
+    minWidth: 0,
+  } as const,
+  langName: {
+    fontSize: fontSizes.base,
+    color: colors.text.primary,
+  } as const,
+  langSize: {
+    fontSize: fontSizes.xs,
+    color: colors.text.muted,
+  } as const,
+  removeBtn: {
+    background: 'none',
+    border: 'none',
     color: colors.text.muted,
     fontSize: fontSizes.sm,
+    cursor: 'pointer',
+    padding: `${spacing[1.5]} ${spacing[2]}`,
+    borderRadius: '6px',
+    fontFamily: 'inherit',
+    transition: 'color 100ms ease',
+    minHeight: 36,
+  } as const,
+  storageLine: {
+    display: 'flex',
+    alignItems: 'center',
+    paddingTop: spacing[3],
+    fontSize: fontSizes.xs,
+    color: colors.text.muted,
   } as const,
   progressBar: {
     marginTop: spacing[2],
@@ -84,15 +132,6 @@ const styles = {
     fontSize: fontSizes.xs,
     color: colors.text.muted,
   } as const,
-  removeBtn: {
-    background: 'none',
-    border: 'none',
-    color: colors.accent.error,
-    fontSize: fontSizes.xs,
-    cursor: 'pointer',
-    padding: 0,
-    fontFamily: 'inherit',
-  } as const,
   modalOverlay: {
     position: 'fixed',
     inset: 0,
@@ -103,7 +142,7 @@ const styles = {
     zIndex: 1000,
   } as const,
   modalCard: {
-    width: 340,
+    width: 360,
     margin: spacing[4],
   } as const,
   modalTitle: {
@@ -131,21 +170,24 @@ const styles = {
     background: 'none',
     border: `1px solid ${colors.border.default}`,
     color: colors.text.secondary,
-    borderRadius: '6px',
-    padding: `${spacing[1.5]} ${spacing[3]}`,
+    borderRadius: '8px',
+    padding: `${spacing[2]} ${spacing[4]}`,
     fontSize: fontSizes.sm,
     cursor: 'pointer',
     fontFamily: 'inherit',
+    minHeight: 36,
   } as const,
   btnPrimary: {
     background: colors.accent.primary,
     border: 'none',
     color: colors.text.inverse,
-    borderRadius: '6px',
-    padding: `${spacing[1.5]} ${spacing[3]}`,
+    borderRadius: '8px',
+    padding: `${spacing[2]} ${spacing[4]}`,
     fontSize: fontSizes.sm,
     cursor: 'pointer',
     fontFamily: 'inherit',
+    minHeight: 36,
+    fontWeight: fontWeights.medium,
   } as const,
   radioGroup: {
     margin: `${spacing[2]} 0`,
@@ -154,7 +196,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing[2],
-    padding: `${spacing[1]} 0`,
+    padding: `${spacing[1.5]} 0`,
     fontSize: fontSizes.sm,
     color: colors.text.secondary,
     cursor: 'pointer',
@@ -169,6 +211,12 @@ type ModalState = {
   existingLang?: string;
   existingLangName?: string;
 } | null;
+
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${bytes} B`;
+}
 
 export function App() {
   const { settings, updateSetting } = useSettings();
@@ -194,7 +242,7 @@ export function App() {
   }, [loadInstalled]);
 
   const secondaryOptions = [
-    { label: 'None (English only)', value: 'none' },
+    { label: 'English only', value: 'none' },
     ...LANGUAGES.map((l) => ({ label: l.name, value: l.code })),
   ];
 
@@ -267,7 +315,8 @@ export function App() {
     }
 
     await loadInstalled();
-    closeModal();
+    setDownloadProgress({ status: 'complete', progress: 100 });
+    window.setTimeout(closeModal, 900);
   };
 
   const handleCancel = () => {
@@ -287,45 +336,60 @@ export function App() {
 
   const getProgressLabel = () => {
     if (!downloadProgress) return '';
-    if (downloadProgress.status === 'downloading') return `Downloading... ${downloadProgress.progress}%`;
-    if (downloadProgress.status === 'complete') return 'Finished';
-    return downloadProgress.error ?? 'Error';
+    if (downloadProgress.status === 'downloading') {
+      return `Downloading ${modal?.langName ?? 'language'}... ${downloadProgress.progress}%`;
+    }
+    if (downloadProgress.status === 'complete') return `${modal?.langName ?? 'Language'} is ready to use.`;
+    return downloadProgress.error ?? 'Download failed.';
   };
 
   const currentSecondaryName = settings.secondaryLanguage
     ? getLanguageByCode(settings.secondaryLanguage)?.name ?? settings.secondaryLanguage
-    : 'None';
+    : null;
+
+  const totalStorage = installedLanguages.reduce((sum, lang) => sum + lang.size, 0);
 
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.title}>{EXTENSION_NAME} Settings</h1>
-        <p style={styles.subtitle}>Configure your OCR copy extension</p>
+        <h1 style={styles.title}>{EXTENSION_NAME}</h1>
+        <p style={styles.subtitle}>Make any text on your screen copyable.</p>
       </div>
 
       <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>OCR</h2>
+        <h2 style={styles.sectionTitle}>Text Recognition</h2>
+        <p style={styles.sectionDesc}>How QuickCopy reads the text you select.</p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>OCR engine mode</div>
-                <div style={styles.settingDesc}>Auto detects text vs code</div>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>
+                  Recognition Mode
+                  <Tooltip text="Automatic is recommended. Switch to Text only if recognition ever misses something you select." />
+                </div>
+                <div style={styles.settingDesc}>
+                  Automatically chooses the best method for the text you select.
+                </div>
               </div>
               <Select
                 value={settings.ocrMode}
                 onChange={(v) => updateSetting('ocrMode', v as typeof settings.ocrMode)}
                 options={[
-                  { label: 'Auto', value: 'auto' },
-                  { label: 'Tesseract only', value: 'text' },
-                  { label: 'Auto + Debug', value: 'debug' },
+                  { label: 'Automatic (recommended)', value: 'auto' },
+                  { label: 'Text only', value: 'text' },
+                  { label: 'Automatic + debug info', value: 'debug' },
                 ]}
               />
             </div>
             <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>Secondary language</div>
-                <div style={styles.settingDesc}>English is always used. Add one more language for mixed text.</div>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>
+                  Additional Language
+                  <Tooltip text="Reading takes a little longer when an additional language is active." />
+                </div>
+                <div style={styles.settingDesc}>
+                  QuickCopy always reads English. You can optionally add one more language.
+                </div>
               </div>
               <Select
                 value={settings.secondaryLanguage ?? 'none'}
@@ -333,18 +397,9 @@ export function App() {
                 options={secondaryOptions}
               />
             </div>
-            {downloadProgress && (
-              <div style={{ marginTop: spacing[2] }}>
-                <div style={styles.progressBar}>
-                  <div style={{ ...styles.progressFill, width: `${downloadProgress.progress}%` }} />
-                </div>
-                <div style={styles.progressText}>{getProgressLabel()}</div>
-              </div>
-            )}
             <div style={{ ...styles.settingRow, borderBottom: 'none', paddingBottom: 0 }}>
-              <span style={{ fontSize: fontSizes.xs, color: colors.text.muted }}>
-                Active: English + {currentSecondaryName === 'None' ? '(none)' : currentSecondaryName}.
-                Using an additional language slightly increases OCR time because two recognition models are loaded.
+              <span style={styles.statusLine}>
+                Currently reading: {currentSecondaryName ? `English + ${currentSecondaryName}` : 'English'}
               </span>
             </div>
           </CardBody>
@@ -352,49 +407,59 @@ export function App() {
       </div>
 
       <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Installed Languages</h2>
-        <p style={styles.sectionDesc}>
-          Languages are stored locally in your browser. English is always built in.
-        </p>
+        <h2 style={styles.sectionTitle}>Downloaded Languages</h2>
+        <p style={styles.sectionDesc}>Languages stored on this device. English is always included.</p>
         {actionError && <p style={styles.modalError}>{actionError}</p>}
         <Card>
           <CardBody>
-            <div style={{ ...styles.settingRow, fontSize: fontSizes.sm }}>
-              <span style={{ color: colors.text.secondary }}>English</span>
-              <span style={{ color: colors.text.muted, fontSize: fontSizes.xs }}>Built in</span>
+            <div style={styles.langRow}>
+              <div style={styles.langInfo}>
+                <span style={styles.langName}>English</span>
+              </div>
+              <Badge>Always available</Badge>
             </div>
             {installedLanguages.map((lang) => {
               const info = getLanguageByCode(lang.code);
               return (
-                <div key={lang.code} style={{ ...styles.settingRow, fontSize: fontSizes.sm }}>
-                  <span style={{ color: colors.text.secondary }}>{info?.name ?? lang.code}</span>
-                  <button
-                    type="button"
-                    style={styles.removeBtn}
-                    onClick={() => handleRemoveLanguage(lang.code)}
-                  >
-                    Remove
-                  </button>
+                <div key={lang.code} style={styles.langRow}>
+                  <div style={styles.langInfo}>
+                    <span style={styles.langName}>{info?.name ?? lang.code}</span>
+                    {info && <span style={styles.langSize}>{info.size}</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2] }}>
+                    <Badge variant="success">Downloaded</Badge>
+                    <button
+                      type="button"
+                      style={styles.removeBtn}
+                      onClick={() => handleRemoveLanguage(lang.code)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               );
             })}
             {installedLanguages.length === 0 && (
-              <div style={{ ...styles.settingRow, borderBottom: 'none', fontSize: fontSizes.sm }}>
-                <span style={{ color: colors.text.muted }}>No additional languages installed yet.</span>
+              <div style={{ ...styles.langRow, borderBottom: 'none' }}>
+                <span style={{ color: colors.text.muted, fontSize: fontSizes.sm }}>
+                  No additional languages downloaded yet.
+                </span>
               </div>
             )}
+            <div style={styles.storageLine}>Storage used: {formatSize(totalStorage)}</div>
           </CardBody>
         </Card>
       </div>
 
       <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Copy Behavior</h2>
+        <h2 style={styles.sectionTitle}>Copying</h2>
+        <p style={styles.sectionDesc}>How copied text behaves.</p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>Auto-copy</div>
-                <div style={styles.settingDesc}>Automatically copy text after OCR completes</div>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>Automatically copy text</div>
+                <div style={styles.settingDesc}>Copies text immediately after recognition.</div>
               </div>
               <Switch
                 checked={settings.autoCopy}
@@ -402,19 +467,19 @@ export function App() {
               />
             </div>
             <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>Show panel after capture</div>
-                <div style={styles.settingDesc}>Show the QuickCopy panel after capturing; disable for silent drag-to-copy</div>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>Show result window</div>
+                <div style={styles.settingDesc}>Displays the copied text before closing.</div>
               </div>
               <Switch
                 checked={settings.showPanel}
                 onChange={(checked) => updateSetting('showPanel', checked)}
               />
             </div>
-            <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>Append newline on copy</div>
-                <div style={styles.settingDesc}>End copied text with a newline so pasting lands on a fresh line; off copies without a trailing newline</div>
+            <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>Append newline</div>
+                <div style={styles.settingDesc}>Adds a new line after copied text.</div>
               </div>
               <Switch
                 checked={settings.appendNewline}
@@ -427,7 +492,7 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>About</h2>
-        <p style={styles.sectionDesc}>Version and license information.</p>
+        <p style={styles.sectionDesc}>QuickCopy is free and open source.</p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
@@ -435,12 +500,6 @@ export function App() {
                 <div style={styles.settingLabel}>Version</div>
               </div>
               <span style={{ color: colors.text.muted }}>{EXTENSION_VERSION}</span>
-            </div>
-            <div style={styles.settingRow}>
-              <div>
-                <div style={styles.settingLabel}>Engine</div>
-              </div>
-              <span style={{ color: colors.text.muted }}>Tesseract.js</span>
             </div>
             <div style={styles.settingRow}>
               <div>
@@ -465,10 +524,6 @@ export function App() {
         </Card>
       </div>
 
-      <div style={styles.footer}>
-        <p>{EXTENSION_NAME} v{EXTENSION_VERSION} &mdash; MIT License</p>
-      </div>
-
       {modal && (
         <div style={styles.modalOverlay} onClick={handleCancel}>
           <div onClick={(e) => e.stopPropagation()}>
@@ -476,20 +531,20 @@ export function App() {
               <CardBody>
                 {modal.type === 'download' ? (
                   <>
-                    <div style={styles.modalTitle}>Download {modal.langName} OCR?</div>
+                    <div style={styles.modalTitle}>Download {modal.langName}?</div>
                     <div style={styles.modalBody}>
                       <div>Size: approximately {modal.langSize}</div>
-                      <div>English OCR will continue to work.</div>
-                      <div>{modal.langName} will be stored locally.</div>
-                      <div>OCR may become slightly slower when using two languages.</div>
+                      <div>{modal.langName} will be stored on this device.</div>
+                      <div>English will keep working.</div>
+                      <div>Reading may take a little longer with two languages.</div>
                     </div>
                   </>
                 ) : (
                   <>
                     <div style={styles.modalTitle}>Switch language?</div>
                     <div style={styles.modalBody}>
-                      <div>{modal.langName} OCR is not installed.</div>
-                      <div>{modal.existingLangName} OCR is already installed.</div>
+                      <div>{modal.langName} isn't downloaded yet.</div>
+                      <div>{modal.existingLangName} is already downloaded.</div>
                       <div style={styles.radioGroup}>
                         <label style={styles.radioLabel}>
                           <input
@@ -498,7 +553,7 @@ export function App() {
                             checked={switchKeep}
                             onChange={() => setSwitchKeep(true)}
                           />
-                          Keep {modal.existingLangName} installed
+                          Keep {modal.existingLangName} on this device
                         </label>
                         <label style={styles.radioLabel}>
                           <input
@@ -507,14 +562,14 @@ export function App() {
                             checked={!switchKeep}
                             onChange={() => setSwitchKeep(false)}
                           />
-                          Remove {modal.existingLangName} after {modal.langName} installs
+                          Remove {modal.existingLangName} after {modal.langName} is ready
                         </label>
                       </div>
                     </div>
                   </>
                 )}
                 {actionError && <div style={styles.modalError}>{actionError}</div>}
-                {downloadProgress?.status === 'downloading' && (
+                {downloadProgress && (
                   <div style={{ marginBottom: spacing[3] }}>
                     <div style={styles.progressBar}>
                       <div style={{ ...styles.progressFill, width: `${downloadProgress.progress}%` }} />
@@ -523,7 +578,12 @@ export function App() {
                   </div>
                 )}
                 <div style={styles.modalActions}>
-                  <button type="button" style={styles.btnSecondary} onClick={handleCancel}>
+                  <button
+                    type="button"
+                    style={styles.btnSecondary}
+                    onClick={handleCancel}
+                    disabled={downloadProgress?.status === 'downloading'}
+                  >
                     Cancel
                   </button>
                   <button
