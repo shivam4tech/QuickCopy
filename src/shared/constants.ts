@@ -32,7 +32,10 @@ export const SIDEBAR_ANIMATION_DURATION = 250;
 
 export const DEFAULT_SIDEBAR_DURATION = 10000;
 
-export const REGION_SELECTION_MIN_SIZE = 10;
+// Only degenerate (zero-size) boxes cancel: drags are already gated by the
+// 8px engagement threshold, and a 10px minimum here forced users to drag
+// *past* small targets (images) so the box spanned the surrounding text.
+export const REGION_SELECTION_MIN_SIZE = 1;
 
 export const CONTENT_SCRIPT_ID = 'quickcopy-root';
 export const OVERLAY_ID = 'quickcopy-overlay';

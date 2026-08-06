@@ -8,8 +8,6 @@ interface CaptureResponse {
   error?: string;
 }
 
-const CAPTURE_PADDING_BOTTOM_PX = 4;
-
 function isExtensionContextValid(): boolean {
   try {
     return !!chrome.runtime?.id;
@@ -105,12 +103,10 @@ export class CaptureService {
         const scaleX = img.naturalWidth / window.innerWidth;
         const scaleY = img.naturalHeight / window.innerHeight;
 
-        const padBottom = Math.min(CAPTURE_PADDING_BOTTOM_PX, Math.max(0, window.innerHeight - (region.y + region.height)));
-
         const cropX = region.x;
         const cropY = region.y;
         const cropWidth = region.width;
-        const cropHeight = region.height + padBottom;
+        const cropHeight = region.height;
 
         const c = document.createElement('canvas');
         c.width = Math.round(cropWidth * scaleX);

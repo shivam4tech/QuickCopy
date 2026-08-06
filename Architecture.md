@@ -122,7 +122,7 @@ Two modes are exposed in the options UI:
 ### Capture Flow
 
 ```
-User holds Ctrl + mouse-drag (or Alt+Shift+C)
+User holds Ctrl + mouse-drag (or Alt+Shift+Q on Chrome / Alt+Shift+C on Firefox)
        │
        ▼
 mousedownHandler (content/index.ts)
@@ -243,7 +243,7 @@ Every async operation has a timeout so the pipeline can never hang:
 - **clipboardHost.ts** — Handles `clipboard:write` in background/offscreen
 - **offscreenHost.ts** — Creates/reuses offscreen document via `chrome.offscreen.createDocument`
 - **managers/BackgroundOcrManager.ts** — Tesseract worker lifecycle + recognition in offscreen document
-- **managers/ShortcutManager.ts** — Keyboard shortcut registration (`Alt+Shift+C`, `Alt+Shift+S`)
+- **managers/ShortcutManager.ts** — Keyboard shortcut registration (`Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox, `Alt+Shift+S`)
 - **managers/ThemeManager.ts** — Dark/light/system theme broadcasting
 
 ### Content (`src/content/`)

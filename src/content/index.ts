@@ -314,6 +314,16 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
 
 const mousedownHandler = (e: MouseEvent) => {
   if (e.button !== 0) return;
+
+  // Armed overlay (keyboard shortcut): any left press starts selection
+  // immediately — no modifier needed.
+  if (overlay.isVisible()) {
+    e.preventDefault();
+    e.stopPropagation();
+    overlay.startSelection(e.clientX, e.clientY);
+    return;
+  }
+
   if (!e.ctrlKey && !e.metaKey) return;
 
   console.log(`[QuickCopy] [1/10] CTRL detected ✓`);

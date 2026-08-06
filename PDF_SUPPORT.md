@@ -24,12 +24,12 @@ inside the tab.
 ## How it works
 
 ```
-Alt+Shift+C on a PDF tab
+Alt+Shift+Q (Chrome) / Alt+Shift+C (Firefox) on a PDF tab
         │
         ▼
 Background detects the PDF (src/pdf/PdfDetector.ts)
    • Chrome built-in viewer: parses the ?file= param of the mhjfbmd… URL
-   • .pdf suffix heuristic (any browser, incl. file://)
+   • .pdf suffix heuristic (any browser, incl. file:// detection)
    • Firefox: tab.mimeType === 'application/pdf'
         │
         ▼
@@ -73,7 +73,7 @@ web pages.
 
 - `src/background/index.ts` — `capture-region` command checks for a PDF tab
   first; existing `overlay:show` path untouched.
-- `src/manifest.json` — `connect-src` extended with `https: http: file:`
+- `src/manifest.json` — `connect-src` extended with `https: http:`
   (the capture window must fetch PDF bytes from arbitrary hosts; previously
   only `self` + GitHub were allowed).
 - `vite.config.ts` — added `src/pdf/window.html` as a build entry.
@@ -104,7 +104,8 @@ web pages.
 - **Debug logging**: extraction/fallback decisions log at `debug` level only,
   which is silent unless the logger level is changed (same convention as the
   rest of the codebase).
-- **One window per tab**: pressing Alt+Shift+C again focuses the existing
+- **One window per tab**: pressing the capture shortcut (Alt+Shift+Q on
+  Chrome, Alt+Shift+C on Firefox) again focuses the existing
   window instead of spawning a duplicate.
 
 ## Known limitations
@@ -112,13 +113,12 @@ web pages.
 - **`blob:` PDFs** (web apps that open PDFs via blob URLs) cannot be fetched
   from the extension page — blob URLs are origin-bound. The window shows a
   clear error. A `captureVisibleTab`-based fallback is a possible follow-up.
-- **Local files (`file://`)**: Chrome (verified up to 151) blocks reading
-  `file://` content in every extension context — extension pages, content
-  scripts, with or without *Allow access to file URLs* — so the capture
-  window asks you to pick the file once (button or drag-and-drop), which
-  restores full text-layer copying. Firefox reads `file://` directly via XHR
-  (the Firefox build's manifest carries the `file:///*` host permission);
-  if that ever fails, the same picker appears.
+- **Local files (`file://`)**: not supported (yet). Reading PDFs from the
+  local machine never worked reliably — Chrome blocks `file://` reads in
+  every extension context (verified up to 151), and the file-picker
+  workaround that shipped earlier proved unreliable. The capture window now
+  shows a clear error when triggered on a `file://` tab. Local PDF reading is
+  planned for a future update.
 - **Auth-protected PDFs** may fail to fetch if cookies are blocked for
   cross-site extension requests.
 - **PDFs whose URL has no `.pdf` suffix** are detected in Firefox via
@@ -133,7 +133,7 @@ web pages.
 3. Research paper / engineering PDF (multi-column ordering, formulas line)
 4. Invoice / ebook / presentation PDF
 5. Handwritten scan (OCR fallback)
-6. Local `file://` PDF (Chrome: enable file access first)
+6. ~~Local `file://` PDF~~ (removed — not supported yet, see Known limitations)
 7. Remote PDF over HTTPS
 8. Browser PDF (drag on a tab displaying a PDF)
 9. Regression: images, videos, Twitter/LinkedIn/YouTube, code screenshots,

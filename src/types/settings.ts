@@ -36,7 +36,7 @@ export const defaultSettings: ExtensionSettings = {
   theme: 'dark',
   sidebarDuration: 10000,
   sidebarPosition: 'right',
-  shortcutCapture: 'Alt+Shift+C',
+  shortcutCapture: 'Alt+Shift+Q',
   shortcutSidebar: 'Alt+Shift+S',
   ocrLanguage: 'eng',
   copyBehavior: 'smart',

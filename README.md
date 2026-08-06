@@ -11,7 +11,7 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 - **Drag-to-copy**: hold `Ctrl` (or `Cmd` on macOS) and drag over any region to OCR it and copy the text automatically.
 - **Floating panel**: a compact panel shows the recognized text with **Copy** and **Edit** buttons; it closes on its own after a successful copy (configurable delay, or keep it open).
 - **Silent mode**: disable the panel and capture/copy entirely in the background (toggle in the options page).
-- **Keyboard shortcuts**: `Alt+Shift+C` to capture a region, `Alt+Shift+S` to toggle the sidebar.
+- **Keyboard shortcuts**: `Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox to capture a region, `Alt+Shift+S` to toggle the sidebar. (Chrome silently rejects `Alt+Shift+C`, so the Chrome build uses `Alt+Shift+Q`.)
 - **Smart recognition**: Automatic mode analyzes each capture and routes it to the best engine — Tesseract for text, a code-optimized engine (PP-OCRv5) for code — with quality-gated retry. Text-only mode always uses Tesseract.
 - **Two languages**: English is always available; download one additional language (German, Hindi, French, and 50+ more) from within the options page.
 - **Smart clipboard**: copies recognized text through a background/offscreen clipboard host, with local fallback.
@@ -41,7 +41,7 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 3. A panel appears with the result so you can review or edit it before copying again.
 4. The panel closes on its own after the chosen delay following a successful copy (or click **Edit** to keep it open).
 
-To capture with the keyboard instead, press `Alt+Shift+C` and drag to select.
+To capture with the keyboard instead, press `Alt+Shift+Q` (Chrome) or `Alt+Shift+C` (Firefox) and drag to select.
 
 > **Tip**: the capture region is padded slightly below the selection so descenders on letters like `g`, `y`, and `p` are not cut off.
 
@@ -145,11 +145,13 @@ This is a beta release. Known rough edges include:
 - OCR accuracy varies with font size, contrast, and image quality.
 - Only one additional language can be active at a time (English always included).
 - Pages with restrictive content security policies fall back to the background OCR worker (handled automatically).
+- **Local PDF files (`file://`) are not supported yet**: only PDFs opened from a browser URL (https://) work. Reading PDFs from the local machine didn't work well in earlier builds (Chrome blocks `file://` reads in extension contexts; the file-picker fallback was unreliable), so the feature was removed and is planned for a future update.
 
 ## Roadmap
 
 - More than one additional language
 - Multi-region / batch capture
+- Local `file://` PDF reading (see Known Issues)
 - Store publishing (Chrome Web Store, Add-ons for Firefox)
 
 ## License

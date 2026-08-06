@@ -326,72 +326,8 @@ function handleKeyDown(e: KeyboardEvent): void {
   }
 }
 
-/**
- * Direct file read: only works in Firefox, where the `file:///*` host
- * permission in the Firefox build's manifest grants extension pages file
- * access. Chrome blocks file:// subresource reads in every extension context
- * (verified against Chrome 151) regardless of the "Allow access to file
- * URLs" toggle — local files there go through the file picker instead.
- */
-function readLocalFileViaXhr(url: string): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(xhr.response as ArrayBuffer);
-      } else {
-        reject(new Error(`HTTP ${xhr.status}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error('File read blocked by the browser'));
-    xhr.send();
-  });
-}
-
-function hideFilePicker(): void {
-  document.getElementById('qc-pdf-filepick')?.classList.remove('visible');
-  pagesEl.style.display = '';
-}
-
-function showFilePicker(fileName: string): void {
-  const nameEl = document.getElementById('qc-pdf-filepick-name');
-  if (nameEl) nameEl.textContent = fileName;
-  pagesEl.style.display = 'none';
-  errorEl.classList.remove('visible');
-  document.getElementById('qc-pdf-filepick')?.classList.add('visible');
-  setStatus('Select the PDF file to continue', 'default');
-}
-
-function wireFilePicker(): void {
-  const input = document.getElementById('qc-pdf-fileinput') as HTMLInputElement | null;
-  document.getElementById('qc-pdf-choose')?.addEventListener('click', () => input?.click());
-  input?.addEventListener('change', () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    void file.arrayBuffer().then(loadPdf).catch((err) => {
-      showError('Could not read this file', getErrorMessage(err));
-    });
-  });
-
-  window.addEventListener('dragover', (e) => e.preventDefault());
-  window.addEventListener('drop', (e) => {
-    e.preventDefault();
-    if (!document.getElementById('qc-pdf-filepick')?.classList.contains('visible')) return;
-    const file = Array.from(e.dataTransfer?.files ?? []).find(
-      (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'),
-    );
-    if (!file) return;
-    void file.arrayBuffer().then(loadPdf).catch((err) => {
-      showError('Could not read this file', getErrorMessage(err));
-    });
-  });
-}
-
 async function loadPdf(data: ArrayBuffer): Promise<void> {
   try {
-    hideFilePicker();
     setStatus('Loading PDF…', 'busy');
     pdfDoc = await getDocument({ data }).promise;
     await createPages(pdfDoc);
@@ -408,7 +344,16 @@ async function main(): Promise<void> {
 
   const pdfUrl = new URLSearchParams(location.search).get('url');
   if (!pdfUrl) {
-    showError('Nothing to capture', 'QuickCopy could not determine which PDF to open. Re-trigger capture (Alt+Shift+C) from the PDF tab.');
+    showError('Nothing to capture', 'QuickCopy could not determine which PDF to open. Re-trigger capture (Alt+Shift+Q on Chrome / Alt+Shift+C on Firefox) from the PDF tab.');
+    return;
+  }
+
+  if (pdfUrl.startsWith('file:')) {
+    logger.warn('Local file PDF unsupported', pdfUrl);
+    showError(
+      'Local PDF files are not supported yet',
+      'PDFs opened from the browser (https://) work out of the box. Reading local <code>file://</code> PDFs is planned for a future update.',
+    );
     return;
   }
 
@@ -429,18 +374,6 @@ async function main(): Promise<void> {
   }, { passive: false, capture: true });
 
   document.addEventListener('mousedown', onDocumentMouseDown, true);
-  wireFilePicker();
-
-  if (pdfUrl.startsWith('file:')) {
-    try {
-      const data = await readLocalFileViaXhr(pdfUrl);
-      await loadPdf(data);
-    } catch {
-      logger.warn('Direct local file read blocked — showing file picker', pdfUrl);
-      showFilePicker(fileNameFromUrl(pdfUrl));
-    }
-    return;
-  }
 
   try {
     const resp = await fetch(pdfUrl);

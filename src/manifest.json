@@ -16,7 +16,7 @@
     "offscreen"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https: http: file: https://github.com https://raw.githubusercontent.com"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https: http: https://github.com https://raw.githubusercontent.com"
   },
   "host_permissions": ["<all_urls>"],
   "action": {
@@ -47,8 +47,8 @@
   "commands": {
     "capture-region": {
       "suggested_key": {
-        "default": "Alt+Shift+C",
-        "mac": "Alt+Shift+C"
+        "default": "Alt+Shift+Q",
+        "mac": "Alt+Shift+Q"
       },
       "description": "Capture region for OCR"
     },
