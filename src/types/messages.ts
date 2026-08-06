@@ -129,6 +129,11 @@ export interface LanguagesGetDataMessage extends MessageBase {
   code: string;
 }
 
+export interface PdfOpenWindowMessage extends MessageBase {
+  type: 'pdf:open-window';
+  pdfUrl: string;
+}
+
 export interface LanguagesGetDataResponse {
   success: boolean;
   /** Base64-encoded traineddata — runtime messaging JSON-serializes, so raw bytes are unsafe. */
@@ -158,7 +163,8 @@ export type ExtensionMessage =
   | ShortcutTriggeredMessage
   | StatusUpdateMessage
   | DiagnosticLogMessage
-  | LanguagesGetDataMessage;
+  | LanguagesGetDataMessage
+  | PdfOpenWindowMessage;
 
 export type MessageHandler<T = unknown> = (
   message: ExtensionMessage,

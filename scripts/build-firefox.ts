@@ -48,6 +48,13 @@ function buildForFirefox(): void {
     },
   };
 
+  // Firefox grants file access via host permissions (no per-extension toggle)
+  if (manifest.host_permissions) {
+    manifest.host_permissions.push('file:///*');
+  } else {
+    manifest.host_permissions = ['file:///*'];
+  }
+
   // Remove Chrome-only keys
   delete manifest.minimum_chrome_version;
 

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { colors, spacing, radius, fonts, fontSizes, fontWeights } from '@styles/designSystem';
 import { Switch } from '@components/ui/Switch';
 import { useSettings } from '@hooks/useSettings';
+import { detectPdfUrl } from '../pdf/PdfDetector';
 
 const styles = {
   container: {
@@ -127,6 +129,35 @@ const styles = {
 export function App() {
   const openOptions = () => chrome.runtime.openOptionsPage();
   const { settings, updateSetting } = useSettings();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(([tab]) => {
+      if (cancelled || !tab) return;
+      const detection = detectPdfUrl(tab.url, (tab as { mimeType?: string }).mimeType);
+      if (detection.pdfUrl) setPdfUrl(detection.pdfUrl);
+    }).catch((err) => {
+      console.error('[QuickCopy] Failed to detect PDF in popup', err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  const openPdfCapture = () => {
+    if (!pdfUrl) return;
+    void chrome.runtime.sendMessage({
+      type: 'pdf:open-window',
+      pdfUrl,
+      source: 'popup',
+      target: 'background',
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    });
+    window.close();
+  };
 
   const openAbout = () => {
     chrome.tabs.create({ url: 'https://github.com/shivam4tech/QuickCopy' });
@@ -167,6 +198,42 @@ export function App() {
           Release — text is copied automatically
         </div>
       </div>
+
+      {pdfUrl && (
+        <>
+          <div style={styles.divider} />
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>PDF detected</div>
+            <button
+              type="button"
+              onClick={openPdfCapture}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: spacing[2],
+                padding: `${spacing[2.5]} ${spacing[3]}`,
+                borderRadius: radius.lg,
+                border: `1px solid ${colors.border.active}`,
+                background: colors.bg.secondary,
+                color: colors.text.primary,
+                fontSize: fontSizes.sm,
+                fontWeight: fontWeights.semibold,
+                cursor: 'pointer',
+              }}
+            >
+              <span>Copy from this PDF</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="8" y="2" width="8" height="4" rx="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M12 11v6" />
+                <path d="M9 14l3 3 3-3" />
+              </svg>
+            </button>
+          </div>
+        </>
+      )}
 
       <div style={styles.divider} />
 
