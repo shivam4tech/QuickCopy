@@ -17,8 +17,20 @@ import { browserMessaging } from '@compat/messaging';
 import { arrayBufferToBase64 } from '@utils/encoding';
 import { detectPdfUrl } from '../pdf/PdfDetector';
 import { pdfWindowManager } from '../pdf/PdfWindowManager';
+import { STORAGE_KEYS } from '@shared/constants';
+import { defaultSettings, type ExtensionSettings } from '@type/settings';
 
 console.log(`[QuickCopy:Background] Service worker starting... (build: ${__BUILD_ID__})`);
+
+async function isPaused(): Promise<boolean> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    const stored = result[STORAGE_KEYS.SETTINGS] as ExtensionSettings | undefined;
+    return stored ? stored.enabled === false : !defaultSettings.enabled;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Resolve the tab the user is looking at.
@@ -49,6 +61,10 @@ async function resolveActiveTab(): Promise<chrome.tabs.Tab | null> {
 
 async function handleCaptureRegionCommand(): Promise<void> {
   logger.info('capture-region triggered');
+  if (await isPaused()) {
+    logger.info('capture-region: extension paused — ignoring shortcut');
+    return;
+  }
   const tab = await resolveActiveTab();
   if (!tab) {
     logger.warn('capture-region: could not resolve the active tab');
@@ -282,8 +298,14 @@ chrome.runtime.onMessage.addListener((
     const { pdfUrl } = message as PdfOpenWindowMessage;
     const tabId = sender.tab?.id;
     if (tabId != null && pdfUrl) {
-      logger.info('pdf:open-window requested from popup', { tabId, pdfUrl });
-      void pdfWindowManager.openForTab(tabId, pdfUrl);
+      void (async () => {
+        if (await isPaused()) {
+          logger.info('pdf:open-window: extension paused — ignoring request');
+        } else {
+          logger.info('pdf:open-window requested from popup', { tabId, pdfUrl });
+          void pdfWindowManager.openForTab(tabId, pdfUrl);
+        }
+      })();
     }
     sendResponse({ success: true });
     return true;

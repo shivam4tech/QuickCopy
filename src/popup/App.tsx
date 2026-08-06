@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { colors, spacing, radius, fonts, fontSizes, fontWeights } from '@styles/designSystem';
 import { Switch } from '@components/ui/Switch';
 import { useSettings } from '@hooks/useSettings';
-import { detectPdfUrl } from '../pdf/PdfDetector';
 
 const styles = {
   container: {
@@ -67,14 +65,23 @@ const styles = {
     color: colors.text.secondary,
     lineHeight: '1.7',
   } as const,
-  guideKey: {
-    display: 'inline',
-    color: colors.text.primary,
-    fontWeight: fontWeights.semibold,
-  } as const,
   guideSep: {
     color: colors.text.muted,
     margin: '0 2px',
+  } as const,
+  kbd: {
+    display: 'inline-block',
+    padding: '1px 5px',
+    margin: '0 1px',
+    borderRadius: radius.sm,
+    background: colors.bg.tertiary,
+    border: `1px solid ${colors.border.active}`,
+    color: colors.accent.primary,
+    fontWeight: fontWeights.semibold,
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.mono,
+    lineHeight: '1.5',
+    boxShadow: '0 1px 0 rgba(0,0,0,0.15)',
   } as const,
   row: {
     display: 'flex',
@@ -129,35 +136,11 @@ const styles = {
 export function App() {
   const openOptions = () => chrome.runtime.openOptionsPage();
   const { settings, updateSetting } = useSettings();
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    void chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(([tab]) => {
-      if (cancelled || !tab) return;
-      const detection = detectPdfUrl(tab.url, (tab as { mimeType?: string }).mimeType);
-      if (detection.pdfUrl) setPdfUrl(detection.pdfUrl);
-    }).catch((err) => {
-      console.error('[QuickCopy] Failed to detect PDF in popup', err);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-
-  const openPdfCapture = () => {
-    if (!pdfUrl) return;
-    void chrome.runtime.sendMessage({
-      type: 'pdf:open-window',
-      pdfUrl,
-      source: 'popup',
-      target: 'background',
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    });
-    window.close();
-  };
+  const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+  const isFirefox = navigator.userAgent.includes('Firefox');
+  const modifier = isMac ? 'Cmd' : 'Ctrl';
+  const pdfShortcut = isFirefox ? ['Alt', 'Shift', 'C'] : ['Alt', 'Shift', 'Q'];
 
   const openAbout = () => {
     chrome.tabs.create({ url: 'https://github.com/shivam4tech/QuickCopy' });
@@ -181,8 +164,55 @@ export function App() {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Status</div>
         <div style={styles.statusRow}>
-          <span style={styles.statusDot} />
-          <span>Ready</span>
+          <span style={{ ...styles.statusDot, background: settings.enabled ? colors.accent.success : colors.text.muted }} />
+          <span>{settings.enabled ? 'Ready' : 'Paused'}</span>
+          <span style={{ flex: 1 }} />
+          <div
+            role="radiogroup"
+            aria-label="Extension power"
+            style={{
+              display: 'flex',
+              background: colors.bg.tertiary,
+              borderRadius: radius.full,
+              padding: 2,
+            }}
+          >
+            {[true, false].map((on) => (
+              <button
+                key={on ? 'on' : 'off'}
+                type="button"
+                role="radio"
+                aria-checked={settings.enabled === on}
+                onClick={() => updateSetting('enabled', on)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: spacing[1],
+                  padding: `2px ${spacing[2]}`,
+                  borderRadius: radius.full,
+                  border: 'none',
+                  background: settings.enabled === on ? colors.bg.secondary : 'transparent',
+                  color: settings.enabled === on ? colors.text.primary : colors.text.muted,
+                  fontSize: fontSizes.xs,
+                  fontWeight: settings.enabled === on ? fontWeights.semibold : fontWeights.medium,
+                  cursor: 'pointer',
+                  boxShadow: settings.enabled === on ? '0 1px 3px rgba(0,0,0,0.25)' : 'none',
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: settings.enabled === on ? colors.accent.success : 'transparent',
+                    border: `1px solid ${settings.enabled === on ? colors.accent.success : colors.border.default}`,
+                    flexShrink: 0,
+                  }}
+                />
+                {on ? 'On' : 'Off'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -191,49 +221,23 @@ export function App() {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>How to use</div>
         <div style={styles.guideCard}>
-          Hold <span style={styles.guideKey}>Ctrl</span>
+          Hold <Kbd>{modifier}</Kbd>
           <span style={styles.guideSep}>+</span>
-          Drag with Left Mouse
+          <Kbd>Drag</Kbd> with Left Mouse
           <br />
           Release — text is copied automatically
+          <br />
+          <br />
+          On a PDF: press{' '}
+          {pdfShortcut.map((key, i) => (
+            <span key={key}>
+              {i > 0 && <span style={styles.guideSep}>+</span>}
+              <Kbd>{key}</Kbd>
+            </span>
+          ))}
+          {' '}to open the capture window
         </div>
       </div>
-
-      {pdfUrl && (
-        <>
-          <div style={styles.divider} />
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>PDF detected</div>
-            <button
-              type="button"
-              onClick={openPdfCapture}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: spacing[2],
-                padding: `${spacing[2.5]} ${spacing[3]}`,
-                borderRadius: radius.lg,
-                border: `1px solid ${colors.border.active}`,
-                background: colors.bg.secondary,
-                color: colors.text.primary,
-                fontSize: fontSizes.sm,
-                fontWeight: fontWeights.semibold,
-                cursor: 'pointer',
-              }}
-            >
-              <span>Copy from this PDF</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="8" y="2" width="8" height="4" rx="1" />
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                <path d="M12 11v6" />
-                <path d="M9 14l3 3 3-3" />
-              </svg>
-            </button>
-          </div>
-        </>
-      )}
 
       <div style={styles.divider} />
 
@@ -271,4 +275,8 @@ export function App() {
       </div>
     </div>
   );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return <kbd style={styles.kbd}>{children}</kbd>;
 }

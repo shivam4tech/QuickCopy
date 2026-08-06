@@ -126,7 +126,13 @@ function handleSettingsChanged(changes: { [key: string]: chrome.storage.StorageC
   const change = changes[STORAGE_KEYS.SETTINGS];
   if (change?.newValue) {
     const oldSecondary = currentSettings.secondaryLanguage;
+    const wasEnabled = currentSettings.enabled;
     currentSettings = { ...defaultSettings, ...(change.newValue as ExtensionSettings) };
+    if (wasEnabled && !currentSettings.enabled) {
+      console.log('[QuickCopy] Extension paused — hiding overlay and closing panel');
+      overlay.hide();
+      if (sidebarVisible) closeSidebar();
+    }
     const newSecondary = currentSettings.secondaryLanguage;
     if (oldSecondary !== newSecondary) {
       console.log(`[QuickCopy] Secondary language changed: ${oldSecondary} → ${newSecondary}`);
@@ -314,6 +320,7 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
 
 const mousedownHandler = (e: MouseEvent) => {
   if (e.button !== 0) return;
+  if (!currentSettings.enabled) return;
 
   // Armed overlay (keyboard shortcut): any left press starts selection
   // immediately — no modifier needed.
@@ -339,6 +346,9 @@ cleanupFns.push(() => document.removeEventListener('mousedown', mousedownHandler
 const cleanupMessaging = browserMessaging.onMessage(async (message) => {
   switch (message.type) {
     case 'overlay:show': {
+      if (!currentSettings.enabled) {
+        return { success: false, error: 'QuickCopy is paused' };
+      }
       beginSelection();
       return { success: true };
     }

@@ -1,6 +1,8 @@
 import type { ThemeMode, CopyBehavior, OcrLanguage, SidebarPosition } from './index';
 
 export interface ExtensionSettings {
+  /** Master switch — when off the extension ignores Ctrl+drag and shortcuts (temporary pause) */
+  enabled: boolean;
   theme: ThemeMode;
   sidebarDuration: number;
   sidebarPosition: SidebarPosition;
@@ -33,6 +35,7 @@ export interface ExtensionSettings {
 export type SettingsKey = keyof ExtensionSettings;
 
 export const defaultSettings: ExtensionSettings = {
+  enabled: true,
   theme: 'dark',
   sidebarDuration: 10000,
   sidebarPosition: 'right',
