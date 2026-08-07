@@ -4,7 +4,9 @@
 
 QuickCopy is a Manifest V3 browser extension that uses optical character recognition (Tesseract.js) to extract text from any visible region of a web page — videos, images, PDFs, and regular pages — then copies it straight to your clipboard.
 
-**Current status: Beta v0.2.0** — capture, OCR, and clipboard flows work end-to-end on Chrome and Firefox, with dual-language recognition (English + one additional language).
+**v1.0.0** — stable and ready for everyday use on Chrome and Firefox, with dual-language recognition (English + one additional language).
+
+> **Privacy first**: QuickCopy does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/QuickCopy) goes a long way. ⭐
 
 ## Features
 
@@ -18,6 +20,15 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 - **Robust OCR worker**: runs Tesseract.js locally in the page when possible (local-first), falling back to the extension background/offscreen document automatically.
 - **Post-processing**: 11-stage cleanup — character repair, URL/email restoration, file-path fixes, code formatting, and more.
 - **Options page** with consumer-friendly settings for recognition, languages, and copy behavior.
+
+## Privacy
+
+QuickCopy is designed to be **private by default**:
+
+- **No data collection.** No analytics, no telemetry, no tracking, no accounts — nothing is ever sent to a server.
+- **Everything runs locally.** Region selection, OCR, and clipboard writes all happen on your machine.
+- **Language files stay on your device.** Downloaded OCR languages are stored in your browser's local storage (IndexedDB) and never leave it. The only network requests QuickCopy ever makes are for downloading these language files when you choose to add one.
+- **Open source.** The entire codebase is MIT-licensed, so you can audit exactly what the extension does.
 
 ## Installation (unpacked)
 
@@ -65,7 +76,7 @@ QuickCopy always reads English. You can optionally add **one more language**:
 | Show result window | Display the copied text before closing (turn off for silent capture) |
 | Close result window after | Auto-close delay after copying finishes — 2s to 1 minute, or never (disabled when the result window is hidden) |
 | Append newline | Adds a new line after copied text |
-| About | Version, license, and repository |
+| About | Version, license, privacy, and repository |
 
 ## Development
 
@@ -140,7 +151,7 @@ See [Architecture.md](./Architecture.md) for the detailed architecture, [FolderS
 
 ## Known Issues
 
-This is a beta release. Known rough edges include:
+Known rough edges include:
 
 - OCR accuracy varies with font size, contrast, and image quality.
 - Only one additional language can be active at a time (English always included).

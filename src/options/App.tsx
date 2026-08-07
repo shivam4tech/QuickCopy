@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { colors, spacing, fonts, fontSizes, fontWeights } from '@styles/designSystem';
+import type { ThemeMode } from '@type/index';
 import { Card, CardBody } from '@components/ui/Card';
 import { Badge } from '@components/ui/Badge';
 import { Switch } from '@components/ui/Switch';
@@ -146,7 +147,7 @@ const styles = {
   modalOverlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.6)',
+    background: colors.overlay,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -340,7 +341,35 @@ export function App() {
     <div style={styles.page}>
       <div style={styles.header}>
         <h1 style={styles.title}>{EXTENSION_NAME}</h1>
-        <p style={styles.subtitle}>Make any text on your screen copyable.</p>
+        <p style={styles.subtitle}>
+          Make any text on your screen copyable — 100% on your device, nothing ever leaves it.
+        </p>
+      </div>
+
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Appearance</h2>
+        <p style={styles.sectionDesc}>Choose how QuickCopy looks across the settings page, popup and capture panel.</p>
+        <Card>
+          <CardBody>
+            <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>Theme</div>
+                <div style={styles.settingDesc}>
+                  System follows your device's color scheme.
+                </div>
+              </div>
+              <Select
+                value={settings.theme}
+                onChange={(v) => updateSetting('theme', v as ThemeMode)}
+                options={[
+                  { label: 'Dark', value: 'dark' },
+                  { label: 'Light', value: 'light' },
+                  { label: 'System', value: 'system' },
+                ]}
+              />
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       <div style={styles.section}>
@@ -517,7 +546,9 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>About</h2>
-        <p style={styles.sectionDesc}>QuickCopy is free and open source.</p>
+        <p style={styles.sectionDesc}>
+          QuickCopy is free, open source, and private by design — it collects no data, ever.
+        </p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
@@ -528,11 +559,19 @@ export function App() {
             </div>
             <div style={styles.settingRow}>
               <div>
+                <div style={styles.settingLabel}>Privacy</div>
+              </div>
+              <span style={{ color: colors.text.muted, fontSize: fontSizes.sm, textAlign: 'right' }}>
+                No data collected — everything stays on your device
+              </span>
+            </div>
+            <div style={styles.settingRow}>
+              <div>
                 <div style={styles.settingLabel}>License</div>
               </div>
               <span style={{ color: colors.text.muted }}>MIT</span>
             </div>
-            <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
+            <div style={styles.settingRow}>
               <div>
                 <div style={styles.settingLabel}>Repository</div>
               </div>
@@ -543,6 +582,31 @@ export function App() {
                 style={{ color: colors.accent.primary, fontSize: fontSizes.sm }}
               >
                 github.com/shivam4tech/QuickCopy
+              </a>
+            </div>
+            <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
+              <div>
+                <div style={styles.settingLabel}>Enjoying QuickCopy?</div>
+                <div style={styles.settingDesc}>It is free and open source. A star helps more people find it.</div>
+              </div>
+              <a
+                href="https://github.com/shivam4tech/QuickCopy"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: spacing[1.5],
+                  color: colors.accent.primary,
+                  fontSize: fontSizes.sm,
+                  fontWeight: fontWeights.medium,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                Star on GitHub
               </a>
             </div>
           </CardBody>

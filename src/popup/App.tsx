@@ -46,8 +46,11 @@ const styles = {
     alignItems: 'center',
     gap: spacing[2],
     padding: `${spacing[1.5]} ${spacing[2.5]}`,
-    background: colors.bg.secondary,
-    borderRadius: radius.md,
+    background: colors.glass.bg,
+    backgroundImage: colors.glass.sheen,
+    border: `1px solid ${colors.glass.border}`,
+    borderRadius: radius.lg,
+    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
     fontSize: fontSizes.sm,
   } as const,
   statusDot: {
@@ -59,8 +62,11 @@ const styles = {
   } as const,
   guideCard: {
     padding: spacing[2.5],
-    background: colors.bg.secondary,
-    borderRadius: radius.md,
+    background: colors.glass.bg,
+    backgroundImage: colors.glass.sheen,
+    border: `1px solid ${colors.glass.border}`,
+    borderRadius: radius.lg,
+    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
     fontSize: fontSizes.sm,
     color: colors.text.secondary,
     lineHeight: '1.7',
@@ -196,8 +202,7 @@ export function App() {
                   fontSize: fontSizes.xs,
                   fontWeight: settings.enabled === on ? fontWeights.semibold : fontWeights.medium,
                   cursor: 'pointer',
-                  boxShadow: settings.enabled === on ? '0 1px 3px rgba(0,0,0,0.25)' : 'none',
-                }}
+                  boxShadow: settings.enabled === on ? '0 1px 3px rgba(0,0,0,0.25)' : 'none',                }}
               >
                 <span
                   style={{
@@ -270,7 +275,6 @@ export function App() {
 
       <div style={styles.footer}>
         <button type="button" style={styles.link} onClick={openAbout}>About</button>
-        <span>Privacy</span>
         <span>v{EXTENSION_VERSION}</span>
       </div>
     </div>

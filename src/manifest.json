@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QuickCopy",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
   "author": "QuickCopy Team",
   "homepage_url": "https://quickcopy.app",

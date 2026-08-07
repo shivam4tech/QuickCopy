@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { colors, spacing, radius, fonts, fontSizes, animation } from '@styles/designSystem';
+import { useId, useState } from 'react';
+import { colors, gradients, spacing, radius, fonts, fontSizes, animation } from '@styles/designSystem';
 
 interface SwitchProps {
   checked: boolean;
@@ -10,6 +10,7 @@ interface SwitchProps {
 
 export function Switch({ checked, onChange, label, disabled = false }: SwitchProps) {
   const id = useId();
+  const [focused, setFocused] = useState(false);
 
   return (
     <label
@@ -37,6 +38,8 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
             if (!disabled) onChange(!checked);
           }
         }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={{
           position: 'relative',
           display: 'inline-flex',
@@ -44,9 +47,12 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
           width: 36,
           height: 20,
           borderRadius: radius.full,
-          background: checked ? colors.accent.primary : colors.bg.tertiary,
+          background: checked ? gradients.primary : gradients.secondary,
           border: `1px solid ${checked ? 'transparent' : colors.border.default}`,
-          transition: `all ${animation.duration.fast} ${animation.easing.ease}`,
+          transition: `background ${animation.duration.normal} ${animation.easing.ease}, border-color ${animation.duration.normal} ${animation.easing.ease}, box-shadow ${animation.duration.normal} ${animation.easing.ease}`,
+          boxShadow: checked
+            ? `0 0 0 1px color-mix(in srgb, var(--color-accent-primary) 30%, transparent), 0 0 12px color-mix(in srgb, var(--color-accent-primary) 40%, transparent)`
+            : `inset 0 1px 0 ${colors.glass.highlight}`,
           outline: 'none',
           flexShrink: 0,
         }}
@@ -57,11 +63,23 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
             width: 14,
             height: 14,
             borderRadius: radius.full,
-            background: '#ffffff',
-            transition: `transform ${animation.duration.fast} ${animation.easing.ease}`,
+            background: 'linear-gradient(180deg, #ffffff 0%, #e9edf2 100%)',
+            boxShadow: `0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(0, 0, 0, 0.12)`,
+            transition: `transform ${animation.duration.slower} ${animation.easing.spring}`,
             transform: checked ? 'translateX(18px)' : 'translateX(2px)',
           }}
         />
+        {focused && (
+          <span
+            style={{
+              position: 'absolute',
+              inset: -3,
+              borderRadius: radius.full,
+              border: `2px solid ${colors.focusRing}`,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </span>
       {label && <span>{label}</span>}
     </label>

@@ -231,7 +231,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     ? ocrData.confidence >= 90 ? colors.accent.success : ocrData.confidence >= 70 ? colors.accent.warning : colors.accent.error
     : colors.text.muted;
 
-  const boxShadow = expanded ? shadows.xl : shadows.lg;
+  const boxShadow = `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${expanded ? shadows.xl : shadows.lg}`;
 
   return (
     <div
@@ -257,9 +257,12 @@ export function Sidebar({ onClose }: SidebarProps) {
             maxHeight: editing ? editHeightRef.current : 'min(72vh, 560px)',
             display: 'flex',
             flexDirection: 'column',
-            background: colors.bg.secondary,
-            border: `1px solid ${colors.border.default}`,
-            borderRadius: radius['2xl'],
+            background: colors.glass.bg,
+            backgroundImage: colors.glass.sheen,
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: `1px solid ${colors.glass.border}`,
+            borderRadius: '20px',
             boxShadow: boxShadow,
             overflow: 'hidden',
             transformOrigin: 'top right',
@@ -284,7 +287,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               justifyContent: 'space-between',
               gap: spacing[2],
               padding: `${spacing[3]} ${spacing[4]}`,
-              borderBottom: `1px solid ${colors.border.muted}`,
+              borderBottom: `1px solid ${colors.glass.border}`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], minWidth: 0 }}>
@@ -364,10 +367,10 @@ export function Sidebar({ onClose }: SidebarProps) {
                       width: '100%',
                       minHeight: 140,
                       flex: 1,
-                      background: colors.bg.tertiary,
+                      background: colors.glass.bgStrong,
                       color: colors.text.primary,
-                      border: `1px solid ${colors.border.active}`,
-                      borderRadius: radius.lg,
+                      border: `1px solid ${colors.glass.border}`,
+                      borderRadius: '14px',
                       padding: spacing[3],
                       fontSize: fontSizes.base,
                       fontFamily: fonts.mono,
@@ -376,6 +379,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                       outline: 'none',
                       overflowY: 'auto',
                       overflowX: 'hidden',
+                      boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
                     }}
                   />
                 ) : (
@@ -390,12 +394,13 @@ export function Sidebar({ onClose }: SidebarProps) {
                       wordBreak: 'break-word',
                       cursor: 'pointer',
                       padding: spacing[2],
-                      borderRadius: radius.lg,
-                      background: colors.bg.tertiary,
+                      borderRadius: '14px',
+                      background: colors.glass.bgStrong,
                       maxHeight: '40vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
-                      border: `1px solid ${colors.border.muted}`,
+                      border: `1px solid ${colors.glass.border}`,
+                      boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
                     }}
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}
@@ -416,7 +421,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <div
             style={{
               padding: spacing[3],
-              borderTop: `1px solid ${colors.border.muted}`,
+              borderTop: `1px solid ${colors.glass.border}`,
               display: 'flex',
               gap: spacing[2],
             }}
@@ -457,10 +462,13 @@ export function Sidebar({ onClose }: SidebarProps) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 4,
-            background: colors.bg.secondary,
-            border: `1px solid ${colors.border.default}`,
-            borderRadius: radius.xl,
-            boxShadow: shadows.lg,
+            background: colors.glass.bg,
+            backgroundImage: colors.glass.sheen,
+            backdropFilter: 'blur(20px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+            border: `1px solid ${colors.glass.border}`,
+            borderRadius: '16px',
+            boxShadow: `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${shadows.lg}`,
             cursor: 'pointer',
             zIndex: 2147483647,
             transition: `transform ${animation.duration.fast} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}`,
@@ -501,7 +509,7 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
         cursor: 'pointer',
         transition: `background ${animation.duration.fast} ${animation.easing.ease}`,
       }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.hover; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.glass.hover; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
     >
       {children}
