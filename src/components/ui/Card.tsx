@@ -1,5 +1,5 @@
 import type { ReactNode, CSSProperties } from 'react';
-import { colors, spacing, radius, shadows } from '@styles/designSystem';
+import { colors, spacing, shadows } from '@styles/designSystem';
 
 interface CardProps {
   children: ReactNode;
@@ -11,12 +11,13 @@ export function Card({ children, style, hover = false }: CardProps) {
   return (
     <div
       style={{
-        background: colors.bg.secondary,
-        border: `1px solid ${colors.border.default}`,
-        borderRadius: radius.lg,
+        background: colors.glass.bg,
+        backgroundImage: colors.glass.sheen,
+        border: `1px solid ${colors.glass.border}`,
+        borderRadius: '18px',
         padding: spacing[4],
-        boxShadow: shadows.sm,
-        transition: hover ? 'border-color 150ms ease, box-shadow 150ms ease' : undefined,
+        boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.lg}`,
+        transition: hover ? 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease' : undefined,
         ...style,
       }}
     >

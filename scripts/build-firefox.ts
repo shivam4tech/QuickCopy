@@ -43,10 +43,18 @@ function buildForFirefox(): void {
   // Add Firefox-specific settings
   manifest.browser_specific_settings = {
     gecko: {
-      id: 'quickcopy@example.com',
+      id: 'helloquickcopy@gmail.com',
       strict_min_version: '121.0',
     },
   };
+
+  // Chrome silently rejects Alt+Shift+C as a suggested key (verified:
+  // commands.getAll() reports an empty shortcut), so the Chrome build uses
+  // Alt+Shift+Q. Firefox assigns Alt+Shift+C reliably — restore it there so
+  // the PDF capture shortcut keeps working in Firefox.
+  if (manifest.commands?.['capture-region']?.suggested_key) {
+    manifest.commands['capture-region'].suggested_key = { default: 'Alt+Shift+C', mac: 'Alt+Shift+C' };
+  }
 
   // Remove Chrome-only keys
   delete manifest.minimum_chrome_version;

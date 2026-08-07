@@ -1,6 +1,8 @@
 import type { ThemeMode, CopyBehavior, OcrLanguage, SidebarPosition } from './index';
 
 export interface ExtensionSettings {
+  /** Master switch — when off the extension ignores Ctrl+drag and shortcuts (temporary pause) */
+  enabled: boolean;
   theme: ThemeMode;
   sidebarDuration: number;
   sidebarPosition: SidebarPosition;
@@ -12,6 +14,8 @@ export interface ExtensionSettings {
   /** When on, copied text always ends with a newline; when off, trailing newlines are stripped */
   appendNewline: boolean;
   showPanel: boolean;
+  /** Seconds the result window stays open after copying finishes (0 = stay open) */
+  panelDismissSeconds: number;
   showConfirmation: boolean;
   enableContextMenu: boolean;
   privacyMode: boolean;
@@ -24,21 +28,25 @@ export interface ExtensionSettings {
   confidenceThreshold: number;
   /** OCR engine selection: auto routing, force text (Tesseract), force code, or auto+debug */
   ocrMode: 'auto' | 'text' | 'code' | 'debug';
+  /** Secondary OCR language code (e.g. 'deu', 'fra') or null for English-only */
+  secondaryLanguage: string | null;
 }
 
 export type SettingsKey = keyof ExtensionSettings;
 
 export const defaultSettings: ExtensionSettings = {
+  enabled: true,
   theme: 'dark',
   sidebarDuration: 10000,
   sidebarPosition: 'right',
-  shortcutCapture: 'Alt+Shift+C',
+  shortcutCapture: 'Alt+Shift+Q',
   shortcutSidebar: 'Alt+Shift+S',
   ocrLanguage: 'eng',
   copyBehavior: 'smart',
   autoCopy: true,
   appendNewline: true,
   showPanel: true,
+  panelDismissSeconds: 5,
   showConfirmation: true,
   enableContextMenu: true,
   privacyMode: false,
@@ -50,6 +58,7 @@ export const defaultSettings: ExtensionSettings = {
   debugMode: false,
   confidenceThreshold: 60,
   ocrMode: 'auto',
+  secondaryLanguage: null,
 };
 
 export interface SettingsGroup {

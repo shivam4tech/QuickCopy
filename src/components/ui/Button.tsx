@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { colors, spacing, radius, fonts, fontSizes, fontWeights, animation } from '@styles/designSystem';
+import { colors, gradients, buttonShadows, spacing, radius, fonts, fontSizes, fontWeights, animation, shadows } from '@styles/designSystem';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -12,16 +13,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
+const baseStyles: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
-    background: colors.accent.primary,
-    color: colors.text.inverse,
+    background: gradients.primary,
+    color: colors.text.onAccent,
     border: 'none',
   },
   secondary: {
-    background: colors.bg.tertiary,
+    background: gradients.secondary,
     color: colors.text.primary,
-    border: `1px solid ${colors.border.default}`,
+    border: `1px solid ${colors.glass.border}`,
   },
   ghost: {
     background: 'transparent',
@@ -29,9 +30,28 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
     border: 'none',
   },
   danger: {
-    background: colors.accent.error,
-    color: '#ffffff',
+    background: gradients.danger,
+    color: colors.text.onAccent,
     border: 'none',
+  },
+};
+
+const hoverStyles: Record<ButtonVariant, React.CSSProperties> = {
+  primary: {
+    background: gradients.primaryHover,
+    boxShadow: buttonShadows.primaryHover,
+  },
+  secondary: {
+    background: gradients.secondaryHover,
+    borderColor: colors.border.hover,
+    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
+  },
+  ghost: {
+    background: colors.glass.hover,
+    color: colors.text.primary,
+  },
+  danger: {
+    filter: 'brightness(1.08)',
   },
 };
 
@@ -62,11 +82,71 @@ export function Button({
   disabled,
   children,
   style,
+  onMouseEnter,
+  onMouseLeave,
+  onPointerDown,
+  onPointerUp,
+  onPointerLeave,
+  onPointerCancel,
   ...props
 }: ButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+
+  const base = baseStyles[variant];
+  const hov = hoverStyles[variant];
+
+  const boxShadow = pressed
+    ? variant === 'ghost'
+      ? undefined
+      : `inset 0 1px 2px color-mix(in srgb, var(--color-shadow) 60%, transparent)`
+    : hovered
+      ? hov.boxShadow
+      : variant === 'primary'
+        ? buttonShadows.primary
+        : variant === 'secondary'
+          ? `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.sm}`
+          : variant === 'danger'
+            ? `0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px color-mix(in srgb, var(--color-accent-error) 22%, transparent)`
+            : undefined;
+
+  const hoverApplied = pressed ? { ...hov, boxShadow: undefined } : hov;
+
+  const merged: React.CSSProperties = {
+    ...base,
+    boxShadow,
+    ...hoverApplied,
+    ...(pressed ? { transform: 'translateY(1px)' } : null),
+  };
+
   return (
     <button
       disabled={disabled || loading}
+      onMouseEnter={(e) => {
+        if (!disabled) setHovered(true);
+        onMouseEnter?.(e);
+      }}
+      onMouseLeave={(e) => {
+        setHovered(false);
+        setPressed(false);
+        onMouseLeave?.(e);
+      }}
+      onPointerDown={(e) => {
+        if (!disabled) setPressed(true);
+        onPointerDown?.(e);
+      }}
+      onPointerUp={(e) => {
+        setPressed(false);
+        onPointerUp?.(e);
+      }}
+      onPointerLeave={(e) => {
+        setPressed(false);
+        onPointerLeave?.(e);
+      }}
+      onPointerCancel={(e) => {
+        setPressed(false);
+        onPointerCancel?.(e);
+      }}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -75,11 +155,11 @@ export function Button({
         borderRadius: radius.md,
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: `all ${animation.duration.fast} ${animation.easing.ease}`,
+        transition: `background ${animation.duration.fast} ${animation.easing.ease}, box-shadow ${animation.duration.normal} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}, transform ${animation.duration.fast} ${animation.easing.ease}, filter ${animation.duration.fast} ${animation.easing.ease}`,
         width: fullWidth ? '100%' : undefined,
         whiteSpace: 'nowrap',
         fontFamily: fonts.sans,
-        ...variantStyles[variant],
+        ...merged,
         ...sizeStyles[size],
         ...style,
       }}

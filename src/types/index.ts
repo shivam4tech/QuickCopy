@@ -36,7 +36,7 @@ export interface OcrResult {
   text: string;
   confidence: number;
   blocks: OcrBlock[];
-  language: OcrLanguage;
+  language: string;
   duration: number;
   /** routing/engine metadata attached by OCRManager (optional, debug) */
   engine?: OcrEngineInfo;

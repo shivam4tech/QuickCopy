@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { colors, spacing, radius, fonts, fontSizes, fontWeights, shadows, animation } from '@styles/designSystem';
 import { Button } from '@components/ui/Button';
 import { eventBus } from '@utils/eventBus';
+import { STORAGE_KEYS } from '@shared/constants';
+import { defaultSettings, type ExtensionSettings } from '@type/settings';
 import type { OcrResult } from '@type/index';
 import { clipboardService } from '@services/ClipboardService';
 
@@ -46,6 +48,7 @@ const Logo = ({ size = 18, color = colors.accent.primary }: { size?: number; col
 
 export function Sidebar({ onClose }: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
+  const [closing, setClosing] = useState(false);
   const [ocrData, setOcrData] = useState<OcrDisplayData | null>(null);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -81,6 +84,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     if (!value) clearDismissTimerRef();
     setExpanded(value);
     announceExpanded(value);
+    setClosing(!value);
   }, [announceExpanded, clearDismissTimerRef]);
 
   useEffect(() => {
@@ -130,9 +134,21 @@ export function Sidebar({ onClose }: SidebarProps) {
       if (success) {
         setStatus({ label: 'Copied!', variant: 'success' });
         clearDismissTimerRef();
-        dismissTimer.current = setTimeout(() => {
-          if (!editingRef.current) handleClose();
-        }, 5000);
+        void chrome.storage.local
+          .get({ [STORAGE_KEYS.SETTINGS]: defaultSettings })
+          .then((res) => {
+            const settings = res[STORAGE_KEYS.SETTINGS] as ExtensionSettings;
+            const seconds = settings.panelDismissSeconds > 0 ? settings.panelDismissSeconds : 0;
+            if (seconds === 0) return;
+            dismissTimer.current = setTimeout(() => {
+              if (!editingRef.current) handleClose();
+            }, seconds * 1000);
+          })
+          .catch(() => {
+            dismissTimer.current = setTimeout(() => {
+              if (!editingRef.current) handleClose();
+            }, 5000);
+          });
       }
     });
 
@@ -183,7 +199,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       clearDismissTimerRef();
       const base = panelRef.current?.offsetHeight;
       if (base && base > 0) {
-        const target = Math.min(base * 1.75, window.innerHeight - 24);
+        const target = Math.min(base * 1.6, window.innerHeight - 24);
         editHeightRef.current = `${Math.max(target, base)}px`;
       }
       setEditText(ocrData.text);
@@ -217,7 +233,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     ? ocrData.confidence >= 90 ? colors.accent.success : ocrData.confidence >= 70 ? colors.accent.warning : colors.accent.error
     : colors.text.muted;
 
-  const boxShadow = expanded ? shadows.xl : shadows.lg;
+  const boxShadow = `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${expanded ? shadows.xl : shadows.lg}`;
 
   return (
     <div
@@ -231,32 +247,50 @@ export function Sidebar({ onClose }: SidebarProps) {
         lineHeight: 'normal',
       }}
     >
-      {expanded ? (
+      {expanded || closing ? (
         <div
           ref={panelRef}
+          onAnimationEnd={(e) => {
+            if (closing && e.animationName === 'qc-pop-out') {
+              setClosing(false);
+            }
+          }}
           style={{
             position: 'fixed',
-            top: 12,
-            right: 12,
-            width: 304,
+            top: 10,
+            right: 10,
+            width: 280,
             height: editing ? editHeightRef.current : undefined,
-            maxHeight: editing ? editHeightRef.current : 'min(72vh, 560px)',
+            maxHeight: editing ? editHeightRef.current : 'min(36vh, 294px)',
             display: 'flex',
             flexDirection: 'column',
-            background: colors.bg.secondary,
-            border: `1px solid ${colors.border.default}`,
-            borderRadius: radius['2xl'],
+            background: colors.glass.bg,
+            backgroundImage: colors.glass.sheen,
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            border: `1px solid ${colors.glass.border}`,
+            borderRadius: '18px',
             boxShadow: boxShadow,
             overflow: 'hidden',
             transformOrigin: 'top right',
             transition: `height ${animation.duration.fast} ${animation.easing.ease}, max-height ${animation.duration.fast} ${animation.easing.ease}`,
-            animation: `qc-pop ${animation.duration.slower} ${animation.easing.spring}`,
+            animation: closing
+              ? `qc-pop-out ${animation.duration.slow} ${animation.easing.easeIn} forwards`
+              : `qc-pop ${animation.duration.slower} ${animation.easing.spring}`,
           }}
         >
           <style>{`
             @keyframes qc-pop {
-              from { opacity: 0; transform: scale(0.92) translateX(12px); }
+              from { opacity: 0; transform: scale(0.92) translateX(22px); }
               to { opacity: 1; transform: scale(1) translateX(0); }
+            }
+            @keyframes qc-pop-out {
+              from { opacity: 1; transform: scale(1) translateX(0); }
+              to { opacity: 0; transform: scale(0.92) translateX(22px); }
+            }
+            @keyframes qc-fade-in {
+              from { opacity: 0; transform: scale(0.9); }
+              to { opacity: 1; transform: scale(1); }
             }
             @keyframes qc-spin {
               to { transform: rotate(360deg); }
@@ -269,8 +303,8 @@ export function Sidebar({ onClose }: SidebarProps) {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: spacing[2],
-              padding: `${spacing[3]} ${spacing[4]}`,
-              borderBottom: `1px solid ${colors.border.muted}`,
+              padding: `${spacing[2.5]} ${spacing[3]}`,
+              borderBottom: `1px solid ${colors.glass.border}`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], minWidth: 0 }}>
@@ -297,7 +331,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  maxWidth: 120,
+                  maxWidth: 100,
                 }}
               >
                 {status.label}
@@ -321,10 +355,10 @@ export function Sidebar({ onClose }: SidebarProps) {
               flex: 1,
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: spacing[4],
+              padding: spacing[3],
               display: 'flex',
               flexDirection: 'column',
-              gap: spacing[3],
+              gap: spacing[2.5],
             }}
           >
             {ocrData ? (
@@ -348,13 +382,13 @@ export function Sidebar({ onClose }: SidebarProps) {
                     spellCheck={false}
                     style={{
                       width: '100%',
-                      minHeight: 140,
+                      minHeight: 100,
                       flex: 1,
                       background: colors.bg.tertiary,
                       color: colors.text.primary,
-                      border: `1px solid ${colors.border.active}`,
-                      borderRadius: radius.lg,
-                      padding: spacing[3],
+                      border: `1px solid ${colors.glass.border}`,
+                      borderRadius: '2px',
+                      padding: spacing[2.5],
                       fontSize: fontSizes.base,
                       fontFamily: fonts.mono,
                       lineHeight: 1.6,
@@ -376,12 +410,12 @@ export function Sidebar({ onClose }: SidebarProps) {
                       wordBreak: 'break-word',
                       cursor: 'pointer',
                       padding: spacing[2],
-                      borderRadius: radius.lg,
+                      borderRadius: '2px',
                       background: colors.bg.tertiary,
-                      maxHeight: '40vh',
+                      maxHeight: '18vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
-                      border: `1px solid ${colors.border.muted}`,
+                      border: `1px solid ${colors.glass.border}`,
                     }}
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}
@@ -389,7 +423,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[3], padding: `${spacing[8]} ${spacing[4]}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[2], padding: `${spacing[4]} ${spacing[4]}` }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" style={{ animation: 'qc-spin 0.8s linear infinite' }}>
                   <circle cx="12" cy="12" r="10" opacity="0.25" />
                   <path d="M12 2a10 10 0 0 1 10 10" />
@@ -401,15 +435,15 @@ export function Sidebar({ onClose }: SidebarProps) {
 
           <div
             style={{
-              padding: spacing[3],
-              borderTop: `1px solid ${colors.border.muted}`,
+              padding: `${spacing[2.5]} ${spacing[3]}`,
+              borderTop: `1px solid ${colors.glass.border}`,
               display: 'flex',
               gap: spacing[2],
             }}
           >
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               style={{ flex: 1 }}
               disabled={!ocrData}
               loading={copying}
@@ -419,7 +453,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             </Button>
             <Button
               variant="secondary"
-              size="md"
+              size="sm"
               onClick={handleClose}
               title="Close panel"
             >
@@ -436,33 +470,50 @@ export function Sidebar({ onClose }: SidebarProps) {
             right: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            width: 46,
-            height: 58,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            background: colors.bg.secondary,
-            border: `1px solid ${colors.border.default}`,
-            borderRadius: radius.xl,
-            boxShadow: shadows.lg,
+            gap: 5,
+            padding: 3,
+            background: colors.bg.tertiary,
+            backdropFilter: 'blur(16px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+            borderRadius: 999,
+            boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
             cursor: 'pointer',
             zIndex: 2147483647,
-            transition: `transform ${animation.duration.fast} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}`,
+            animation: `qc-fade-in 240ms ${animation.easing.easeOut}`,
+            transition: `transform ${animation.duration.normal} ${animation.easing.easeOut}, box-shadow ${animation.duration.normal} ${animation.easing.easeOut}`,
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.06)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.05)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%)'; }}
         >
-          <Logo size={20} />
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 18,
+              height: 18,
+              borderRadius: 999,
+              background: colors.bg.secondary,
+              boxShadow: `0 1px 3px rgba(0, 0, 0, 0.25), inset 0 1px 0 ${colors.glass.highlight}`,
+              flexShrink: 0,
+            }}
+          >
+            <Logo size={11} />
+          </span>
           <span
             style={{
               width: 5,
               height: 5,
               borderRadius: '50%',
               background: statusColors[status.variant],
+              flexShrink: 0,
             }}
           />
+          <span style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.medium, color: colors.text.secondary, paddingRight: 2 }}>
+            Open
+          </span>
         </button>
       )}
     </div>
@@ -478,8 +529,8 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 24,
-        height: 24,
+        width: 22,
+        height: 22,
         borderRadius: radius.md,
         color: colors.text.muted,
         background: 'transparent',
@@ -487,7 +538,7 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
         cursor: 'pointer',
         transition: `background ${animation.duration.fast} ${animation.easing.ease}`,
       }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.hover; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.glass.hover; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
     >
       {children}

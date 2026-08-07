@@ -1,32 +1,71 @@
+/**
+ * Theme-driven design tokens. Values are CSS custom properties so a `data-theme`
+ * flip on the document (or the sidebar's shadow host) restyles every consumer
+ * without re-rendering. Declared in `styles/global.css` for extension pages and
+ * in the sidebar's shadow stylesheet for the in-page panel.
+ */
 export const colors = {
   bg: {
-    primary: '#0d1117',
-    secondary: '#161b22',
-    tertiary: '#21262d',
-    hover: '#1c2128',
-    active: '#292e36',
+    primary: 'var(--color-bg-primary)',
+    secondary: 'var(--color-bg-secondary)',
+    tertiary: 'var(--color-bg-tertiary)',
+    hover: 'var(--color-bg-hover)',
+    active: 'var(--color-bg-active)',
   },
   text: {
-    primary: '#e6edf3',
-    secondary: '#8b949e',
-    muted: '#6e7681',
-    inverse: '#0d1117',
+    primary: 'var(--color-text-primary)',
+    secondary: 'var(--color-text-secondary)',
+    muted: 'var(--color-text-muted)',
+    inverse: 'var(--color-text-inverse)',
+    onAccent: 'var(--color-on-accent)',
   },
   border: {
-    default: '#30363d',
-    muted: '#21262d',
-    hover: '#484f58',
-    active: '#58a6ff',
+    default: 'var(--color-border-default)',
+    muted: 'var(--color-border-muted)',
+    hover: 'var(--color-border-hover)',
+    active: 'var(--color-border-active)',
   },
   accent: {
-    primary: '#58a6ff',
-    success: '#3fb950',
-    warning: '#d29922',
-    error: '#f85149',
-    info: '#79c0ff',
+    primary: 'var(--color-accent-primary)',
+    success: 'var(--color-accent-success)',
+    warning: 'var(--color-accent-warning)',
+    error: 'var(--color-accent-error)',
+    info: 'var(--color-accent-info)',
   },
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  shadow: 'rgba(0, 0, 0, 0.3)',
+  accentSoft: {
+    success: 'var(--color-accent-success-soft)',
+    warning: 'var(--color-accent-warning-soft)',
+    error: 'var(--color-accent-error-soft)',
+    info: 'var(--color-accent-info-soft)',
+  },
+  glass: {
+    bg: 'var(--glass-bg)',
+    bgStrong: 'var(--glass-bg-strong)',
+    border: 'var(--glass-border)',
+    highlight: 'var(--glass-highlight)',
+    rim: 'var(--glass-rim)',
+    shadow: 'var(--glass-shadow)',
+    hover: 'var(--hover-overlay)',
+    sheen: 'var(--glass-sheen)',
+  },
+  overlay: 'var(--color-overlay)',
+  shadow: 'var(--color-shadow)',
+  focusRing: 'var(--focus-ring)',
+} as const;
+
+export const gradients = {
+  primary: 'var(--gradient-primary)',
+  primaryHover: 'var(--gradient-primary-hover)',
+  primaryActive: 'var(--gradient-primary-active)',
+  secondary: 'var(--gradient-secondary)',
+  secondaryHover: 'var(--gradient-secondary-hover)',
+  secondaryActive: 'var(--gradient-secondary-active)',
+  danger: 'var(--gradient-danger)',
+} as const;
+
+export const buttonShadows = {
+  primary: 'var(--btn-primary-shadow)',
+  primaryHover: 'var(--btn-primary-shadow-hover)',
 } as const;
 
 export const spacing = {
@@ -108,10 +147,10 @@ export const animation = {
 } as const;
 
 export const shadows = {
-  sm: '0 1px 2px rgba(0, 0, 0, 0.3)',
-  md: '0 2px 8px rgba(0, 0, 0, 0.3)',
-  lg: '0 4px 16px rgba(0, 0, 0, 0.3)',
-  xl: '0 8px 32px rgba(0, 0, 0, 0.4)',
+  sm: 'var(--shadow-sm)',
+  md: 'var(--shadow-md)',
+  lg: 'var(--shadow-lg)',
+  xl: 'var(--shadow-xl)',
 } as const;
 
 export const zIndex = {

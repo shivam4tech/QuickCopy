@@ -216,8 +216,12 @@ export class OverlayManager {
     this.state = 'capturing';
     eventBus.emit('overlay:stateChange', 'capturing');
 
-    this.onComplete?.(region);
+    // Hide the overlay BEFORE the capture round-trip screenshots the page —
+    // otherwise the dim mask and selection box are baked into the crop and
+    // every OCR pass reads a darkened image.
+    const complete = this.onComplete;
     this.hide();
+    complete?.(region);
   }
 
   private cancelSelection(): void {

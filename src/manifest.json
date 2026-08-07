@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "QuickCopy",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
-  "author": "QuickCopy Team",
-  "homepage_url": "https://quickcopy.app",
+  "author": "helloquickcopy@gmail.com",
+  "homepage_url": "https://github.com/shivam4tech/QuickCopy",
   "minimum_chrome_version": "102",
   "permissions": [
     "storage",
@@ -16,7 +16,7 @@
     "offscreen"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https: http: https://github.com https://raw.githubusercontent.com"
   },
   "host_permissions": ["<all_urls>"],
   "action": {
@@ -47,8 +47,8 @@
   "commands": {
     "capture-region": {
       "suggested_key": {
-        "default": "Alt+Shift+C",
-        "mac": "Alt+Shift+C"
+        "default": "Alt+Shift+Q",
+        "mac": "Alt+Shift+Q"
       },
       "description": "Capture region for OCR"
     },

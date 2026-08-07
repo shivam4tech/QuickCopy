@@ -14,19 +14,19 @@ const variantStyles: Record<BadgeVariant, React.CSSProperties> = {
     color: colors.text.secondary,
   },
   success: {
-    background: `${colors.accent.success}18`,
+    background: colors.accentSoft.success,
     color: colors.accent.success,
   },
   warning: {
-    background: `${colors.accent.warning}18`,
+    background: colors.accentSoft.warning,
     color: colors.accent.warning,
   },
   error: {
-    background: `${colors.accent.error}18`,
+    background: colors.accentSoft.error,
     color: colors.accent.error,
   },
   info: {
-    background: `${colors.accent.info}18`,
+    background: colors.accentSoft.info,
     color: colors.accent.info,
   },
 };
@@ -44,6 +44,7 @@ export function Badge({ variant = 'default', children }: BadgeProps) {
         fontWeight: fontWeights.medium,
         fontFamily: fonts.sans,
         lineHeight: 1,
+        boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
         ...variantStyles[variant],
       }}
     >

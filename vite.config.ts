@@ -44,6 +44,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         offscreen: resolve(__dirname, 'src/offscreen/index.html'),
+        pdfWindow: resolve(__dirname, 'src/pdf/window.html'),
       },
     },
   },

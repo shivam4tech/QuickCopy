@@ -11,9 +11,120 @@ import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import type { ExtensionMessage, MessageResponse } from '@type/messages';
 import type { ThemeMode } from '@type/index';
+import type { LanguagesGetDataMessage, LanguagesGetDataResponse, PdfOpenWindowMessage } from '@type/messages';
+import { languageManager } from '@services/ocr/LanguageManager';
 import { browserMessaging } from '@compat/messaging';
+import { arrayBufferToBase64 } from '@utils/encoding';
+import { detectPdfUrl } from '../pdf/PdfDetector';
+import { pdfWindowManager } from '../pdf/PdfWindowManager';
+import { STORAGE_KEYS } from '@shared/constants';
+import { defaultSettings, type ExtensionSettings } from '@type/settings';
 
 console.log(`[QuickCopy:Background] Service worker starting... (build: ${__BUILD_ID__})`);
+
+async function isPaused(): Promise<boolean> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    const stored = result[STORAGE_KEYS.SETTINGS] as ExtensionSettings | undefined;
+    return stored ? stored.enabled === false : !defaultSettings.enabled;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the tab the user is looking at.
+ *
+ * `lastFocusedWindow` is used instead of `currentWindow`, which is unreliable
+ * on a freshly woken service worker (the window-focus state may not be
+ * resolved yet, so the query can silently return nothing). A second attempt
+ * through `windows.getLastFocused` covers the remaining races.
+ */
+async function resolveActiveTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tab?.id != null) return tab;
+  } catch (err) {
+    logger.warn('resolveActiveTab: lastFocusedWindow query failed', getErrorMessage(err));
+  }
+  try {
+    const win = await chrome.windows.getLastFocused();
+    if (win.id != null) {
+      const [tab] = await chrome.tabs.query({ active: true, windowId: win.id });
+      if (tab?.id != null) return tab;
+    }
+  } catch (err) {
+    logger.warn('resolveActiveTab: getLastFocused fallback failed', getErrorMessage(err));
+  }
+  return null;
+}
+
+async function handleCaptureRegionCommand(): Promise<void> {
+  logger.info('capture-region triggered');
+  if (await isPaused()) {
+    logger.info('capture-region: extension paused — ignoring shortcut');
+    return;
+  }
+  const tab = await resolveActiveTab();
+  if (!tab) {
+    logger.warn('capture-region: could not resolve the active tab');
+    return;
+  }
+
+  const detection = detectPdfUrl(tab.url, (tab as { mimeType?: string }).mimeType);
+  if (detection.pdfUrl && tab.id != null) {
+    logger.info('capture-region: PDF tab detected — opening capture window', {
+      pdfUrl: detection.pdfUrl,
+      via: detection.via,
+    });
+    await pdfWindowManager.openForTab(tab.id, detection.pdfUrl);
+    return;
+  }
+
+  if (tab.id == null) return;
+  logger.info('capture-region: sending overlay:show to tab', { tabId: tab.id });
+  await browserMessaging.sendMessageToTab(tab.id, {
+    type: 'overlay:show',
+    mode: 'region',
+    source: 'background',
+    target: 'content',
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+  }).catch(err => logger.error('Failed to send overlay:show', err));
+}
+
+async function handleToggleSidebarCommand(): Promise<void> {
+  logger.info('toggle-sidebar triggered');
+  const tab = await resolveActiveTab();
+  if (!tab?.id) return;
+  await browserMessaging.sendMessageToTab(tab.id, {
+    type: 'sidebar:toggle',
+    source: 'background',
+    target: 'content',
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+  }).catch(err => logger.error('Failed to send sidebar:toggle', err));
+}
+
+/**
+ * Register command handlers synchronously at module load.
+ *
+ * The service worker is woken BY the shortcut press, so the listener must
+ * exist before the first `await` in this module — otherwise Chrome dispatches
+ * `onCommand` while nothing is listening and the press is silently dropped.
+ * This was the cause of intermittent "nothing happens" trigger behavior.
+ */
+function registerCommandHandlers(): void {
+  shortcutManager.initialize();
+  shortcutManager.register('capture-region', () => {
+    void handleCaptureRegionCommand();
+  });
+  shortcutManager.register('toggle-sidebar', () => {
+    void handleToggleSidebarCommand();
+  });
+}
+
+registerCommandHandlers();
 
 async function initialize(): Promise<void> {
   const compat = BrowserCompat.getInstance();
@@ -27,37 +138,6 @@ async function initialize(): Promise<void> {
   const settings = await settingsService.getAll();
 
   themeManager.initialize(settings.theme as ThemeMode);
-
-  shortcutManager.initialize();
-
-  shortcutManager.register('capture-region', () => {
-    logger.info('capture-region shortcut triggered');
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (!tab?.id) return;
-      browserMessaging.sendMessageToTab(tab.id, {
-        type: 'overlay:show',
-        mode: 'region',
-        source: 'background',
-        target: 'content',
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-      }).catch(err => logger.error('Failed to send overlay:show', err));
-    });
-  });
-
-  shortcutManager.register('toggle-sidebar', () => {
-    logger.info('toggle-sidebar shortcut triggered');
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (!tab?.id) return;
-      browserMessaging.sendMessageToTab(tab.id, {
-        type: 'sidebar:toggle',
-        source: 'background',
-        target: 'content',
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-      }).catch(err => logger.error('Failed to send sidebar:toggle', err));
-    });
-  });
 
   eventBus.emit('app:ready', undefined);
   logger.info(`${EXTENSION_NAME} initialized successfully`);
@@ -196,6 +276,37 @@ chrome.runtime.onMessage.addListener((
   }
   if (message.type === 'diag:log') {
     console.log(`[QuickCopy:Background:diag] ${message.label}`, message.payload);
+    sendResponse({ success: true });
+    return true;
+  }
+  if (message.type === 'languages:get-data') {
+    const { code } = message as LanguagesGetDataMessage;
+    languageManager.getTraineddata(code)
+      .then((data) => {
+        const resp: LanguagesGetDataResponse = data
+          ? { success: true, dataBase64: arrayBufferToBase64(data), size: data.length }
+          : { success: false, error: `Language ${code} is not in the store` };
+        sendResponse(resp as MessageResponse);
+      })
+      .catch((err) => {
+        console.error(`[QuickCopy:Background] languages:get-data failed for ${code}`, err);
+        sendResponse({ success: false, error: getErrorMessage(err) } as MessageResponse);
+      });
+    return true;
+  }
+  if (message.type === 'pdf:open-window') {
+    const { pdfUrl } = message as PdfOpenWindowMessage;
+    const tabId = sender.tab?.id;
+    if (tabId != null && pdfUrl) {
+      void (async () => {
+        if (await isPaused()) {
+          logger.info('pdf:open-window: extension paused — ignoring request');
+        } else {
+          logger.info('pdf:open-window requested from popup', { tabId, pdfUrl });
+          void pdfWindowManager.openForTab(tabId, pdfUrl);
+        }
+      })();
+    }
     sendResponse({ success: true });
     return true;
   }

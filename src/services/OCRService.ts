@@ -9,6 +9,7 @@ import { flattenTesseractBlocks } from './ocr/geometry';
 import { OCRManager } from './ocr/OCRManager';
 import type { OcrMode } from './ocr/router/OCRRouter';
 import { settingsService } from './SettingsService';
+import { languageManager } from './ocr/LanguageManager';
 
 interface TesseractWorker {
   recognize(image: string, options?: Record<string, unknown>, output?: Record<string, boolean>): Promise<{ data: { text: string; confidence: number; blocks: unknown[] } }>;
@@ -45,6 +46,15 @@ export class OCRService implements OcrServiceInterface {
     }
     this.ocrManager?.setMode(this.settingsMode);
     return this.settingsMode;
+  }
+
+  private async getActiveLanguageString(): Promise<string> {
+    try {
+      const secondary = await settingsService.get('secondaryLanguage');
+      return languageManager.getActiveLanguageString(secondary as string | null);
+    } catch {
+      return 'eng';
+    }
   }
 
   private getOrCreateManager(): OCRManager {
@@ -128,37 +138,6 @@ export class OCRService implements OcrServiceInterface {
     }
   }
 
-  /**
-   * Whether this page context can construct the real OCR worker. Probes with the
-   * extension's own `worker.min.js` URL (not a `data:` URL): data:/blob: worker
-   * probes are blocked by page CSP on many sites and produce confusing CSP
-   * errors, while the extension URL reflects exactly what `initWorker()` will
-   * actually construct. A `data:`/`blob:`-only page that allows extension URLs
-   * returns true here so the fast in-page worker is used.
-   */
-  private canSpawnWorkersLocally(): Promise<boolean> {
-    return new Promise((resolve) => {
-      let settled = false;
-      let probe: Worker | null = null;
-      let timer: ReturnType<typeof setTimeout> | null = null;
-      const finish = (ok: boolean): void => {
-        if (settled) return;
-        settled = true;
-        if (timer) clearTimeout(timer);
-        try { probe?.terminate(); } catch { /* noop */ }
-        resolve(ok);
-      };
-      try {
-        const workerUrl = chrome.runtime.getURL('tessdata/worker.min.js');
-        probe = new Worker(workerUrl);
-        timer = setTimeout(() => finish(true), 400);
-        probe.onerror = () => finish(false);
-      } catch {
-        finish(false);
-      }
-    });
-  }
-
   async initialize(): Promise<boolean> {
     if (this._disposed) return false;
     if (!isExtensionContextValid()) return false;
@@ -168,15 +147,16 @@ export class OCRService implements OcrServiceInterface {
       return true;
     }
 
-    const localWorkersAllowed = await this.canSpawnWorkersLocally();
-    console.log(`[QuickCopy] [6/10] Worker spawn on this page: ${localWorkersAllowed ? 'ALLOWED — using local OCR worker' : 'BLOCKED by page CSP/TrustedTypes — using background OCR worker'}`);
-
-    if (!localWorkersAllowed) {
-      const backgroundReady = await this.initBackground();
-      if (backgroundReady) return true;
+    // Fast path: try the in-page worker first. The old CSP probe produced
+    // false negatives (pages where `new Worker(extensionUrl)` is blocked but
+    // blob-URL workers work fine), which forced a 20s background wait for no
+    // reason. Attempting the local worker directly is fast when it succeeds
+    // and fails in ~1-2s on pages that genuinely block worker spawns.
+    if (await this.initLocal()) {
+      return true;
     }
 
-    return this.initLocal();
+    return this.initBackground();
   }
 
   private async initLocal(): Promise<boolean> {
@@ -218,6 +198,9 @@ export class OCRService implements OcrServiceInterface {
     const workerPath = `${baseUrl}worker.min.js`;
     const corePath = baseUrl;
     const langPath = baseUrl;
+
+    const langStr = await this.getActiveLanguageString();
+    console.log(`[QuickCopy] [6/10] OCR language: ${langStr}`);
 
     console.log(`[QuickCopy] [6/10] Worker paths:`, {
       workerPath,
@@ -340,20 +323,22 @@ export class OCRService implements OcrServiceInterface {
     }, 5000);
     try {
       try {
-        workerInstance = await Tesseract.createWorker('eng', undefined, {
+        workerInstance = await Tesseract.createWorker(langStr, undefined, {
           workerPath,
           corePath,
           langPath,
+          gzip: false,
           logger: ocrLogger,
         });
         console.log(`[QuickCopy] [6/10] createWorker succeeded via default (blob URL) worker path`);
       } catch (blobPathErr) {
         console.warn(`[QuickCopy] [6/10] createWorker via blob URL path FAILED — retrying with direct extension worker URL`, describeError(blobPathErr));
-        workerInstance = await Tesseract.createWorker('eng', undefined, {
+        workerInstance = await Tesseract.createWorker(langStr, undefined, {
           workerPath,
           corePath,
           langPath,
           workerBlobURL: false,
+          gzip: false,
           logger: ocrLogger,
         });
         console.log(`[QuickCopy] [6/10] createWorker succeeded via direct extension worker URL path`);
@@ -382,17 +367,18 @@ export class OCRService implements OcrServiceInterface {
     logger.info('OCRService: worker initialized');
   }
 
-  private async recognizeInBackground(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
+  private async recognizeInBackground(imageData: string): Promise<OcrResult> {
     console.log(`[QuickCopy] [7/10] OCR started (background worker)`);
     const startTime = performance.now();
     eventBus.emit('ocr:started', undefined);
     eventBus.emit('status:update', { status: 'busy', message: 'Performing OCR...' });
 
     try {
+      const langStr = await this.getActiveLanguageString();
       const response = await browserMessaging.sendMessage<OcrRecognizeResponse>({
         type: 'ocr:recognize',
         imageData,
-        language,
+        language: langStr,
         source: 'content',
         target: 'background',
         id: crypto.randomUUID(),
@@ -451,7 +437,7 @@ export class OCRService implements OcrServiceInterface {
     await this.syncMode();
 
     if (this.backgroundMode) {
-      return this.recognizeInBackground(imageData, _language);
+      return this.recognizeInBackground(imageData);
     }
 
     const startTime = performance.now();
@@ -563,6 +549,45 @@ export class OCRService implements OcrServiceInterface {
     this.initialized = false;
     this.workerInitPromise = null;
     logger.info('OCRService: terminated');
+  }
+
+  /**
+   * Rebuild the OCR worker with the current language settings.
+   * Called when the secondary language setting changes.
+   */
+  async rebuildWorker(): Promise<void> {
+    if (!this.initialized) return;
+
+    console.log(`[QuickCopy] [6/10] Rebuilding OCR worker for language change...`);
+
+    if (this.worker && !this.backgroundMode) {
+      try {
+        await this.worker.terminate();
+      } catch {
+        // ignore
+      }
+      this.worker = null;
+    }
+
+    if (this.backgroundMode) {
+      try {
+        await browserMessaging.sendMessage({
+          type: 'ocr:terminate',
+          source: 'content',
+          target: 'background',
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    this.initialized = false;
+    this.workerInitPromise = null;
+    this.backgroundMode = false;
+
+    console.log(`[QuickCopy] [6/10] OCR worker reset — will re-init on next recognize()`);
   }
 }
 

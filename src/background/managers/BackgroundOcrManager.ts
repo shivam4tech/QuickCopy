@@ -1,4 +1,4 @@
-import type { OcrResult, OcrLanguage } from '@type/index';
+import type { OcrResult } from '@type/index';
 import { getErrorMessage, getErrorStack } from '@utils/logger';
 import { timeoutOCR, withTimeout } from '@utils/timeout';
 import { flattenTesseractBlocks } from '../../services/ocr/geometry';
@@ -78,6 +78,7 @@ export class BackgroundOcrManager {
   private worker: TesseractWorker | null = null;
   private status: BackgroundOcrStatus = 'idle';
   private initPromise: Promise<{ success: boolean; reason?: string }> | null = null;
+  private currentLanguage: string | null = null;
 
   private constructor() {}
 
@@ -95,16 +96,24 @@ export class BackgroundOcrManager {
     return this.status;
   }
 
-  async init(): Promise<{ success: boolean; reason?: string }> {
-    if (this.status === 'ready') return { success: true };
+  getActiveLanguage(): string | null {
+    return this.currentLanguage;
+  }
+
+  async init(language?: string): Promise<{ success: boolean; reason?: string }> {
+    const lang = language ?? 'eng';
+    if (this.status === 'ready' && this.worker && this.currentLanguage === lang) {
+      return { success: true };
+    }
     if (this.status === 'unavailable') return { success: false, reason: 'worker-unavailable' };
     if (this.initPromise) return this.initPromise;
 
-    this.initPromise = this.createWorker();
+    this.currentLanguage = lang;
+    this.initPromise = this.createWorker(lang);
     return this.initPromise;
   }
 
-  private async createWorker(): Promise<{ success: boolean; reason?: string }> {
+  private async createWorker(lang: string): Promise<{ success: boolean; reason?: string }> {
     this.status = 'initializing';
     console.log(`[QuickCopy:Background] OCR init started (build: ${__BUILD_ID__})`);
 
@@ -139,7 +148,7 @@ export class BackgroundOcrManager {
       console.log(`[QuickCopy:Background] Seeding traineddata cache (worker fetch of moz-extension:// URLs is blocked, cache avoids it)...`);
       await seedTraineddataCache('eng', baseUrl);
 
-      console.log(`[QuickCopy:Background] Creating Tesseract worker...`);
+      console.log(`[QuickCopy:Background] Creating Tesseract worker (lang: ${lang})...`);
       const workerStart = performance.now();
       const heartbeat = setInterval(() => {
         console.warn(`[QuickCopy:Background] Still awaiting createWorker() after ${Math.round(performance.now() - workerStart)}ms — worker promise has NOT settled`);
@@ -148,11 +157,12 @@ export class BackgroundOcrManager {
       let workerInstance: unknown;
       try {
         workerInstance = await withTimeout(
-          Tesseract.createWorker('eng', undefined, {
+          Tesseract.createWorker(lang, undefined, {
             workerPath,
             corePath,
             langPath,
             workerBlobURL: false,
+            gzip: false,
             errorHandler: (data: unknown) => {
               console.error(`[QuickCopy:Background] tesseract worker reported an error`, data);
             },
@@ -195,8 +205,24 @@ export class BackgroundOcrManager {
     }
   }
 
-  async recognize(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
-    const init = await this.init();
+  async recognize(imageData: string, language?: string): Promise<OcrResult> {
+    const lang = language ?? 'eng';
+
+    if (this.status !== 'ready' || !this.worker || this.currentLanguage !== lang) {
+      if (this.initPromise) {
+        try {
+          await this.initPromise;
+        } catch {
+          // fall through and re-init
+        }
+      }
+      if (this.worker) {
+        console.log(`[QuickCopy:Background] Rebuilding worker for language change (${this.currentLanguage} → ${lang})`);
+        await this.terminate();
+      }
+    }
+
+    const init = await this.init(lang);
     if (!init.success || !this.worker) {
       throw new Error(`Background OCR unavailable (${init.reason ?? 'unknown'})`);
     }
@@ -222,7 +248,7 @@ export class BackgroundOcrManager {
     return result;
   }
 
-  private async recognizeWithWorker(imageData: string, language?: OcrLanguage): Promise<OcrResult> {
+  private async recognizeWithWorker(imageData: string, language?: string): Promise<OcrResult> {
     if (!this.worker) throw new Error('Background OCR worker not available');
 
     const startTime = performance.now();
@@ -256,6 +282,7 @@ export class BackgroundOcrManager {
       }
       this.worker = null;
     }
+    this.currentLanguage = null;
     this.status = 'idle';
     this.initPromise = null;
     console.log(`[QuickCopy:Background] OCR worker terminated`);

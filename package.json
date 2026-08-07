@@ -1,6 +1,6 @@
 {
   "name": "quickcopy",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
@@ -23,6 +23,7 @@
     "@ocr-web/core": "^0.2.1",
     "@ocr-web/models-ppocrv5": "^0.1.1",
     "onnxruntime-web": "^1.27.0",
+    "pdfjs-dist": "^6.2.108",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tesseract.js": "^7.0.0"
