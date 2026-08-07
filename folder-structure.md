@@ -9,10 +9,13 @@ quickcopy/
 ├── .prettierrc                          # Prettier formatting rules
 ├── .gitignore                           # Git ignore patterns
 ├── vite-env.d.ts                        # Vite environment declarations
+├── LICENSE                              # MIT license
 ├── README.md                            # Project overview
-├── Architecture.md                      # Architecture documentation
-├── FolderStructure.md                   # This file
-├── CURRENT_STATE_REVIEW.md              # Technical review + known issues
+├── architecture.md                      # Architecture documentation
+├── design.md                            # Design system (themes, glass, motion)
+├── folder-structure.md                  # This file
+├── current-state-review.md              # Technical review + known issues
+├── pdf-support.md                       # PDF capture module documentation
 │
 ├── src/
 │   ├── manifest.json                    # Extension manifest (MV3)
@@ -38,6 +41,13 @@ quickcopy/
 │   ├── offscreen/
 │   │   ├── index.html                   # Offscreen document HTML
 │   │   └── ocr.ts                       # Offscreen entry: auto-init OCR + message listener
+│   │
+│   ├── pdf/
+│   │   ├── PdfDetector.ts               # PDF tab detection (viewer URL, .pdf suffix, mimeType)
+│   │   ├── PdfWindowManager.ts          # One capture window per PDF tab
+│   │   ├── window.html / window.ts      # PDF capture window (render, drag, extract/OCR, copy)
+│   │   ├── regionMapper.ts              # Drag region → PDF page coordinates
+│   │   └── textExtractor.ts             # Text-layer extraction (lines, columns, paragraphs)
 │   │
 │   ├── popup/
 │   │   ├── index.html / main.tsx / App.tsx  # Popup UI (React)
@@ -84,6 +94,7 @@ quickcopy/
 │   │       └── code/                    # Code formatting subsystem (7 files)
 │   │
 │   ├── utils/
+│   │   ├── theme.ts                     # Theme engine (resolveThemeMode, createThemeApplier, themeController)
 │   │   ├── encoding.ts                  # arrayBufferToBase64 / base64ToUint8Array (traineddata transport)
 │   │   ├── trustedTypes.ts              # Worker-constructor patch for Trusted Types pages
 │   │   ├── logger.ts                    # Structured logger (levels, emoji prefixes)
@@ -109,8 +120,8 @@ quickcopy/
 │   │   └── globals.d.ts                 # __BUILD_ID__, re-exports
 │   │
 │   ├── styles/
-│   │   ├── designSystem.ts              # Design tokens (colors, spacing, typography)
-│   │   └── global.css                   # CSS reset and custom properties
+│   │   ├── designSystem.ts              # Design tokens (colors, spacing, typography, animation)
+│   │   └── global.css                   # CSS reset + theme token blocks (dark / light)
 │   │
 │   └── shared/
 │       ├── constants.ts                 # App identifiers, z-indices, sizing
@@ -122,7 +133,7 @@ quickcopy/
 │   ├── codeocr/                         # PP-OCRv5 models (det + rec ONNX + dict)
 │   └── ort/                             # onnxruntime-web WASM
 ├── scripts/
-│   ├── generate-icons.ts                # Icon generation from SVG
+│   ├── generate-icons.ts                # Procedural PNG icons (16/48/128) → public/icons
 │   ├── build-firefox.ts                 # Firefox build (WebExt)
 │   └── prepare-ocr-assets.ts            # Copies tesseract assets into public/tessdata
 │
@@ -144,11 +155,11 @@ quickcopy/
 | `offscreen/` | Offscreen document entry (Chrome) | 2 |
 | `popup/` | Quick status and shortcut reference | 3 |
 | `options/` | Full settings page | 3 |
-| `components/` | Reusable design system components | 8 |
+| `components/` | Reusable design system components | 7 |
 | `hooks/` | React state hooks | 3 |
 | `services/` | All business logic (OCR, languages, capture, clipboard, preprocessing, postprocessing, settings) | ~35 |
 | `compat/` | Browser API abstraction | 7 |
-| `utils/` | Logger, event bus, timeouts, encoding, Trusted Types patch | 5 |
+| `utils/` | Theme engine, logger, event bus, timeouts, encoding, Trusted Types patch | 6 |
 | `types/` | All TypeScript type definitions | 7 |
 | `styles/` | Design tokens and CSS | 2 |
 | `shared/` | Constants | 2 |

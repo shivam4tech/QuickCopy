@@ -43,7 +43,7 @@ function buildForFirefox(): void {
   // Add Firefox-specific settings
   manifest.browser_specific_settings = {
     gecko: {
-      id: 'quickcopy@example.com',
+      id: 'helloquickcopy@gmail.com',
       strict_min_version: '121.0',
     },
   };

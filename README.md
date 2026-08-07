@@ -15,6 +15,7 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 - **Silent mode**: disable the panel and capture/copy entirely in the background (toggle in the options page).
 - **Keyboard shortcuts**: `Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox to capture a region, `Alt+Shift+S` to toggle the sidebar. (Chrome silently rejects `Alt+Shift+C`, so the Chrome build uses `Alt+Shift+Q`.)
 - **Smart recognition**: Automatic mode analyzes each capture and routes it to the best engine — Tesseract for text, a code-optimized engine (PP-OCRv5) for code — with quality-gated retry. Text-only mode always uses Tesseract.
+- **Themes**: Dark, Light, and System — a liquid-glass design with smooth, hardware-friendly transitions across the settings page, popup, and capture panel.
 - **Two languages**: English is always available; download one additional language (German, Hindi, French, and 50+ more) from within the options page.
 - **Smart clipboard**: copies recognized text through a background/offscreen clipboard host, with local fallback.
 - **Robust OCR worker**: runs Tesseract.js locally in the page when possible (local-first), falling back to the extension background/offscreen document automatically.
@@ -70,7 +71,7 @@ QuickCopy always reads English. You can optionally add **one more language**:
 | Setting | Description |
 |---|---|
 | Recognition Mode | Automatic (recommended) — routes each capture to the best engine; Text only — always use Tesseract |
-| Additional Language | English plus one more downloaded language, or English only |
+| Additional Language | English plus one more downloaded language, or None |
 | Downloaded Languages | Manage languages on this device (set as additional / remove) |
 | Automatically copy text | Copy recognized text to the clipboard immediately after recognition |
 | Show result window | Display the copied text before closing (turn off for silent capture) |
@@ -86,7 +87,8 @@ Requirements: Node.js 18+ and npm.
 # Install dependencies (runs the OCR asset preparation script)
 npm install
 
-# Generate icon files
+# Generate icon files (draws public/icons/icon{16,48,128}.png — edit
+# scripts/generate-icons.ts to change the drawing, or replace the PNGs)
 npm run generate-icons
 
 # Development mode (with HMR)
@@ -147,7 +149,11 @@ src/
 
 ## Architecture
 
-See [Architecture.md](./Architecture.md) for the detailed architecture, [FolderStructure.md](./FolderStructure.md) for a complete file reference, and [CURRENT_STATE_REVIEW.md](./CURRENT_STATE_REVIEW.md) for the current-state review.
+See [architecture.md](./architecture.md) for the detailed architecture, [folder-structure.md](./folder-structure.md) for a complete file reference, [design.md](./design.md) for the design system (themes, liquid glass, motion), and [current-state-review.md](./current-state-review.md) for the technical review.
+
+## Design System
+
+The UI is a theme-driven **liquid glass** design system: token-based colors (Dark / Light / System themes), a shared glass recipe, and motion guidelines that animate only `transform` and `opacity` while respecting `prefers-reduced-motion`. See [design.md](./design.md) for the full reference — including how to change tokens and where the sidebar's mirrored theme tokens live.
 
 ## Known Issues
 

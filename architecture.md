@@ -97,6 +97,8 @@ Two modes are exposed in the options UI:
 
 **Solution**: A centralized design system (`src/styles/designSystem.ts`) exports color palettes, spacing, typography, and animation tokens as TypeScript constants. UI components reference these tokens exclusively.
 
+The actual token values live as CSS custom properties in `src/styles/global.css`, in two blocks — `:root` (dark, the default) and `:root[data-theme='light']` — so theme switching is a single attribute flip. `src/utils/theme.ts` (`themeController.setTheme`) resolves the user's dark/light/system setting and keeps `system` in sync with the OS via `matchMedia`. Because the sidebar renders inside a closed shadow root, its host re-declares the same tokens in `src/content/sidebar/index.ts` and must be kept in sync with `global.css`. See [design.md](./design.md) for the full design-system reference (liquid glass recipe, component behaviors, motion guidelines).
+
 ### 7. Shadow DOM Isolation
 
 **Problem**: Content scripts operate in the host page's DOM, risking CSS conflicts.

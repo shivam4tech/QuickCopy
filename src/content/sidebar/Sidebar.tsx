@@ -384,10 +384,10 @@ export function Sidebar({ onClose }: SidebarProps) {
                       width: '100%',
                       minHeight: 100,
                       flex: 1,
-                      background: colors.glass.bgStrong,
+                      background: colors.bg.tertiary,
                       color: colors.text.primary,
                       border: `1px solid ${colors.glass.border}`,
-                      borderRadius: '12px',
+                      borderRadius: '2px',
                       padding: spacing[2.5],
                       fontSize: fontSizes.base,
                       fontFamily: fonts.mono,
@@ -396,7 +396,6 @@ export function Sidebar({ onClose }: SidebarProps) {
                       outline: 'none',
                       overflowY: 'auto',
                       overflowX: 'hidden',
-                      boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
                     }}
                   />
                 ) : (
@@ -411,13 +410,12 @@ export function Sidebar({ onClose }: SidebarProps) {
                       wordBreak: 'break-word',
                       cursor: 'pointer',
                       padding: spacing[2],
-                      borderRadius: '12px',
-                      background: colors.glass.bgStrong,
+                      borderRadius: '2px',
+                      background: colors.bg.tertiary,
                       maxHeight: '18vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
                       border: `1px solid ${colors.glass.border}`,
-                      boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
                     }}
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}

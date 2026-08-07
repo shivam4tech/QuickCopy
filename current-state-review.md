@@ -44,6 +44,12 @@ src/
 ├── offscreen/
 │   ├── index.html                        # Offscreen document HTML (Chrome MV3)
 │   └── ocr.ts                            # Offscreen entry: auto-inits BackgroundOcrManager, relays messages
+├── pdf/
+│   ├── PdfDetector.ts                    # PDF tab detection (viewer URL, .pdf suffix, mimeType)
+│   ├── PdfWindowManager.ts               # One capture window per PDF tab
+│   ├── window.html / window.ts           # PDF capture window (render, drag, extract/OCR, copy)
+│   ├── regionMapper.ts                   # Drag region → PDF page coordinates
+│   └── textExtractor.ts                  # Text-layer extraction (lines, columns, paragraphs)
 ├── popup/
 │   ├── index.html / main.tsx / App.tsx   # Popup UI (React)
 ├── options/
@@ -92,6 +98,7 @@ src/
 │   ├── events.ts                         # Event map (24 events)
 │   └── globals.d.ts                      # __BUILD_ID__ declaration
 ├── utils/
+│   ├── theme.ts                          # Theme engine (resolveThemeMode, createThemeApplier, themeController)
 │   ├── encoding.ts                       # arrayBufferToBase64 / base64ToUint8Array (traineddata transport)
 │   ├── trustedTypes.ts                   # Worker-constructor patch for Trusted Types pages
 │   ├── logger.ts                         # Structured logger with levels + emoji prefixes
@@ -106,7 +113,7 @@ src/
 ├── components/ui/                        # Reusable UI components (Button, Badge, Card, Switch, Select, Tooltip)
 ├── styles/
 │   ├── designSystem.ts                   # Design tokens (colors, spacing, typography, animation)
-│   └── global.css                        # CSS reset + custom properties
+│   └── global.css                        # CSS reset + theme token blocks (dark / light)
 └── manifest.json                         # MV3 manifest
 ```
 
@@ -330,6 +337,7 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 10. **Shadow DOM isolation** for overlay and sidebar prevents CSS conflicts
 11. **Design system as code** — single source of truth for all visual tokens; options page is consumer-friendly (no jargon)
 12. **Compatibility layer** cleanly abstracts browser API differences
+13. **Theme-driven liquid glass UI** — dark/light/system themes across options, popup, and sidebar (shadow-root token blocks), with motion restricted to transform/opacity and `prefers-reduced-motion` respected
 
 ---
 
@@ -349,11 +357,13 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 
 7. **Log noise**: The "Still awaiting createWorker() after Xms" warning fires every 5s during normal initialization on slow machines; creates unnecessary console pollution.
 
-8. **Minimal integration test coverage**: 267 unit tests cover the OCR router, postprocessing stages, and services, but the core pipeline integration (capture→OCR→postprocess→clipboard) has no end-to-end tests.
+8. **Minimal integration test coverage**: 295 unit tests (33 files) cover the OCR router, postprocessing stages, and services, but the core pipeline integration (capture→OCR→postprocess→clipboard) has no end-to-end tests.
 
 9. **`handleCaptureViewport` accesses `chrome.runtime.lastError` after callback**, which is the correct pattern but fragile (Chrome MV3 sometimes calls the callback without a runtime.lastError for success).
 
 10. **Routed capture of large regions**: Tesseract recognize has a 5s cap; very large or complex regions can still time out and fall to the quality-gated CodeOCR path.
+
+11. **Theme token duplication**: the sidebar lives in a closed shadow root, so its theme tokens are duplicated in `src/content/sidebar/index.ts` (dark + light host blocks) and must be kept in sync manually with `src/styles/global.css` — a missed token edit drifts the panel from the rest of the UI silently.
 
 ---
 
@@ -395,8 +405,8 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 |---|---|---|
 | Architecture quality | 7.5 | Well-structured service layer; mature patterns (singletons, DI-ready interfaces, event bus) |
 | Code quality | 7.5 | Clean TypeScript, good types, no anys, strict mode |
-| Test coverage | 5 | 267 unit tests (30 files) for OCR routing, postprocessing, services; no integration tests |
-| Documentation | 7 | Architecture.md, FolderStructure.md, README kept in sync with the current flow |
+| Test coverage | 5 | 295 unit tests (33 files) for OCR routing, postprocessing, services; no integration tests |
+| Documentation | 7 | architecture.md, folder-structure.md, design.md, README kept in sync with the current flow |
 | Browser compat | 6.5 | Chrome and Firefox confirmed working; Edge/Brave untested |
 | Error handling | 6 | Many catch blocks and timeouts; no pipeline cancellation |
 | Performance | 8 | Fast local-first init; small captures 1-2s; CodeOCR warm-up slow |
@@ -410,6 +420,6 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 
 **Confidence: 95%**
 
-This review reflects the current codebase after the recent rounds of work: emoji support removed entirely, local-first OCR initialization (no CSP probe), dual-language support with IDB-traineddata management, `gzip: false` worker config, base64 traineddata transport, Trusted Types patch, and the consumer-facing options page redesign (Recognition Mode, Downloaded Languages with storage accounting, Copying section with configurable panel dismiss).
+This review reflects the current codebase after the recent rounds of work: emoji support removed entirely, local-first OCR initialization (no CSP probe), dual-language support with IDB-traineddata management, `gzip: false` worker config, base64 traineddata transport, Trusted Types patch, the consumer-facing options page redesign (Recognition Mode, Downloaded Languages with storage accounting, Copying section with configurable panel dismiss), the liquid-glass dark/light/system theme system (v1.0.0), and the custom (non-native) dropdown that keeps popup styling consistent across Chrome and Firefox.
 
 Remaining gaps: `prepare-ocr-assets.ts` script internals, `build-firefox.ts` build script, and the full test suite in `__tests__/` are not read in detail — these are build-time helpers and test files which don't affect the runtime architecture understanding.

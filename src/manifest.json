@@ -3,8 +3,8 @@
   "name": "QuickCopy",
   "version": "1.0.0",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
-  "author": "QuickCopy Team",
-  "homepage_url": "https://quickcopy.app",
+  "author": "helloquickcopy@gmail.com",
+  "homepage_url": "https://github.com/shivam4tech/QuickCopy",
   "minimum_chrome_version": "102",
   "permissions": [
     "storage",
