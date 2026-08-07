@@ -241,7 +241,7 @@ export function App() {
   }, [loadInstalled]);
 
   const secondaryOptions = [
-    { label: 'English only', value: 'none' },
+    { label: 'None', value: 'none' },
     ...LANGUAGES.map((l) => ({ label: l.name, value: l.code })),
   ];
 

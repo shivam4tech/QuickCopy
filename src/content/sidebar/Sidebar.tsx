@@ -261,7 +261,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             right: 10,
             width: 280,
             height: editing ? editHeightRef.current : undefined,
-            maxHeight: editing ? editHeightRef.current : 'min(60vh, 480px)',
+            maxHeight: editing ? editHeightRef.current : 'min(36vh, 294px)',
             display: 'flex',
             flexDirection: 'column',
             background: colors.glass.bg,
@@ -382,7 +382,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                     spellCheck={false}
                     style={{
                       width: '100%',
-                      minHeight: 120,
+                      minHeight: 100,
                       flex: 1,
                       background: colors.glass.bgStrong,
                       color: colors.text.primary,
@@ -413,7 +413,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                       padding: spacing[2],
                       borderRadius: '12px',
                       background: colors.glass.bgStrong,
-                      maxHeight: '32vh',
+                      maxHeight: '18vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
                       border: `1px solid ${colors.glass.border}`,
@@ -425,7 +425,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[2.5], padding: `${spacing[6]} ${spacing[4]}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[2], padding: `${spacing[4]} ${spacing[4]}` }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" style={{ animation: 'qc-spin 0.8s linear infinite' }}>
                   <circle cx="12" cy="12" r="10" opacity="0.25" />
                   <path d="M12 2a10 10 0 0 1 10 10" />
@@ -472,37 +472,50 @@ export function Sidebar({ onClose }: SidebarProps) {
             right: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            width: 44,
-            height: 52,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            background: colors.glass.bg,
-            backgroundImage: colors.glass.sheen,
+            gap: 5,
+            padding: 3,
+            background: colors.bg.tertiary,
             backdropFilter: 'blur(16px) saturate(140%)',
             WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-            border: `1px solid ${colors.glass.border}`,
             borderRadius: 999,
-            boxShadow: `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
+            boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
             cursor: 'pointer',
             zIndex: 2147483647,
             animation: `qc-fade-in 240ms ${animation.easing.easeOut}`,
-            transition: `transform ${animation.duration.normal} ${animation.easing.easeOut}, box-shadow ${animation.duration.normal} ${animation.easing.easeOut}, border-color ${animation.duration.normal} ${animation.easing.ease}`,
+            transition: `transform ${animation.duration.normal} ${animation.easing.easeOut}, box-shadow ${animation.duration.normal} ${animation.easing.easeOut}`,
           }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.05)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%)'; }}
         >
-          <Logo size={18} />
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 18,
+              height: 18,
+              borderRadius: 999,
+              background: colors.bg.secondary,
+              boxShadow: `0 1px 3px rgba(0, 0, 0, 0.25), inset 0 1px 0 ${colors.glass.highlight}`,
+              flexShrink: 0,
+            }}
+          >
+            <Logo size={11} />
+          </span>
           <span
             style={{
               width: 5,
               height: 5,
               borderRadius: '50%',
               background: statusColors[status.variant],
+              flexShrink: 0,
             }}
           />
+          <span style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.medium, color: colors.text.secondary, paddingRight: 2 }}>
+            Open
+          </span>
         </button>
       )}
     </div>
