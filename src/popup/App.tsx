@@ -1,5 +1,5 @@
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
-import { colors, spacing, radius, fonts, fontSizes, fontWeights } from '@styles/designSystem';
+import { colors, spacing, radius, fonts, fontSizes, fontWeights, animation } from '@styles/designSystem';
 import { Switch } from '@components/ui/Switch';
 import { useSettings } from '@hooks/useSettings';
 
@@ -177,12 +177,28 @@ export function App() {
             role="radiogroup"
             aria-label="Extension power"
             style={{
+              position: 'relative',
               display: 'flex',
               background: colors.bg.tertiary,
               borderRadius: radius.full,
               padding: 2,
             }}
           >
+            <span
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: 2,
+                bottom: 2,
+                width: 'calc(50% - 2px)',
+                borderRadius: radius.full,
+                background: colors.bg.secondary,
+                boxShadow: `0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 ${colors.glass.highlight}`,
+                transform: settings.enabled ? 'translateX(100%)' : 'translateX(0)',
+                transition: `transform ${animation.duration.slow} ${animation.easing.spring}`,
+                willChange: 'transform',
+              }}
+            />
             {[true, false].map((on) => (
               <button
                 key={on ? 'on' : 'off'}
@@ -191,18 +207,22 @@ export function App() {
                 aria-checked={settings.enabled === on}
                 onClick={() => updateSetting('enabled', on)}
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: spacing[1],
+                  flex: 1,
                   padding: `2px ${spacing[2]}`,
                   borderRadius: radius.full,
                   border: 'none',
-                  background: settings.enabled === on ? colors.bg.secondary : 'transparent',
+                  background: 'transparent',
                   color: settings.enabled === on ? colors.text.primary : colors.text.muted,
                   fontSize: fontSizes.xs,
-                  fontWeight: settings.enabled === on ? fontWeights.semibold : fontWeights.medium,
+                  fontWeight: fontWeights.medium,
                   cursor: 'pointer',
-                  boxShadow: settings.enabled === on ? '0 1px 3px rgba(0,0,0,0.25)' : 'none',                }}
+                  transition: `color ${animation.duration.fast} ${animation.easing.ease}`,
+                }}
               >
                 <span
                   style={{
@@ -212,6 +232,7 @@ export function App() {
                     background: settings.enabled === on ? colors.accent.success : 'transparent',
                     border: `1px solid ${settings.enabled === on ? colors.accent.success : colors.border.default}`,
                     flexShrink: 0,
+                    transition: `background ${animation.duration.fast} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}`,
                   }}
                 />
                 {on ? 'On' : 'Off'}

@@ -48,6 +48,7 @@ const Logo = ({ size = 18, color = colors.accent.primary }: { size?: number; col
 
 export function Sidebar({ onClose }: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
+  const [closing, setClosing] = useState(false);
   const [ocrData, setOcrData] = useState<OcrDisplayData | null>(null);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -83,6 +84,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     if (!value) clearDismissTimerRef();
     setExpanded(value);
     announceExpanded(value);
+    setClosing(!value);
   }, [announceExpanded, clearDismissTimerRef]);
 
   useEffect(() => {
@@ -197,7 +199,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       clearDismissTimerRef();
       const base = panelRef.current?.offsetHeight;
       if (base && base > 0) {
-        const target = Math.min(base * 1.75, window.innerHeight - 24);
+        const target = Math.min(base * 1.6, window.innerHeight - 24);
         editHeightRef.current = `${Math.max(target, base)}px`;
       }
       setEditText(ocrData.text);
@@ -245,16 +247,21 @@ export function Sidebar({ onClose }: SidebarProps) {
         lineHeight: 'normal',
       }}
     >
-      {expanded ? (
+      {expanded || closing ? (
         <div
           ref={panelRef}
+          onAnimationEnd={(e) => {
+            if (closing && e.animationName === 'qc-pop-out') {
+              setClosing(false);
+            }
+          }}
           style={{
             position: 'fixed',
-            top: 12,
-            right: 12,
-            width: 304,
+            top: 10,
+            right: 10,
+            width: 280,
             height: editing ? editHeightRef.current : undefined,
-            maxHeight: editing ? editHeightRef.current : 'min(72vh, 560px)',
+            maxHeight: editing ? editHeightRef.current : 'min(60vh, 480px)',
             display: 'flex',
             flexDirection: 'column',
             background: colors.glass.bg,
@@ -262,18 +269,28 @@ export function Sidebar({ onClose }: SidebarProps) {
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: `1px solid ${colors.glass.border}`,
-            borderRadius: '20px',
+            borderRadius: '18px',
             boxShadow: boxShadow,
             overflow: 'hidden',
             transformOrigin: 'top right',
             transition: `height ${animation.duration.fast} ${animation.easing.ease}, max-height ${animation.duration.fast} ${animation.easing.ease}`,
-            animation: `qc-pop ${animation.duration.slower} ${animation.easing.spring}`,
+            animation: closing
+              ? `qc-pop-out ${animation.duration.slow} ${animation.easing.easeIn} forwards`
+              : `qc-pop ${animation.duration.slower} ${animation.easing.spring}`,
           }}
         >
           <style>{`
             @keyframes qc-pop {
-              from { opacity: 0; transform: scale(0.92) translateX(12px); }
+              from { opacity: 0; transform: scale(0.92) translateX(22px); }
               to { opacity: 1; transform: scale(1) translateX(0); }
+            }
+            @keyframes qc-pop-out {
+              from { opacity: 1; transform: scale(1) translateX(0); }
+              to { opacity: 0; transform: scale(0.92) translateX(22px); }
+            }
+            @keyframes qc-fade-in {
+              from { opacity: 0; transform: scale(0.9); }
+              to { opacity: 1; transform: scale(1); }
             }
             @keyframes qc-spin {
               to { transform: rotate(360deg); }
@@ -286,7 +303,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: spacing[2],
-              padding: `${spacing[3]} ${spacing[4]}`,
+              padding: `${spacing[2.5]} ${spacing[3]}`,
               borderBottom: `1px solid ${colors.glass.border}`,
             }}
           >
@@ -314,7 +331,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  maxWidth: 120,
+                  maxWidth: 100,
                 }}
               >
                 {status.label}
@@ -338,10 +355,10 @@ export function Sidebar({ onClose }: SidebarProps) {
               flex: 1,
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: spacing[4],
+              padding: spacing[3],
               display: 'flex',
               flexDirection: 'column',
-              gap: spacing[3],
+              gap: spacing[2.5],
             }}
           >
             {ocrData ? (
@@ -365,13 +382,13 @@ export function Sidebar({ onClose }: SidebarProps) {
                     spellCheck={false}
                     style={{
                       width: '100%',
-                      minHeight: 140,
+                      minHeight: 120,
                       flex: 1,
                       background: colors.glass.bgStrong,
                       color: colors.text.primary,
                       border: `1px solid ${colors.glass.border}`,
-                      borderRadius: '14px',
-                      padding: spacing[3],
+                      borderRadius: '12px',
+                      padding: spacing[2.5],
                       fontSize: fontSizes.base,
                       fontFamily: fonts.mono,
                       lineHeight: 1.6,
@@ -394,9 +411,9 @@ export function Sidebar({ onClose }: SidebarProps) {
                       wordBreak: 'break-word',
                       cursor: 'pointer',
                       padding: spacing[2],
-                      borderRadius: '14px',
+                      borderRadius: '12px',
                       background: colors.glass.bgStrong,
-                      maxHeight: '40vh',
+                      maxHeight: '32vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
                       border: `1px solid ${colors.glass.border}`,
@@ -408,7 +425,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[3], padding: `${spacing[8]} ${spacing[4]}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing[2.5], padding: `${spacing[6]} ${spacing[4]}` }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" style={{ animation: 'qc-spin 0.8s linear infinite' }}>
                   <circle cx="12" cy="12" r="10" opacity="0.25" />
                   <path d="M12 2a10 10 0 0 1 10 10" />
@@ -420,7 +437,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
           <div
             style={{
-              padding: spacing[3],
+              padding: `${spacing[2.5]} ${spacing[3]}`,
               borderTop: `1px solid ${colors.glass.border}`,
               display: 'flex',
               gap: spacing[2],
@@ -428,7 +445,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           >
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               style={{ flex: 1 }}
               disabled={!ocrData}
               loading={copying}
@@ -438,7 +455,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             </Button>
             <Button
               variant="secondary"
-              size="md"
+              size="sm"
               onClick={handleClose}
               title="Close panel"
             >
@@ -455,8 +472,8 @@ export function Sidebar({ onClose }: SidebarProps) {
             right: 10,
             top: '50%',
             transform: 'translateY(-50%)',
-            width: 46,
-            height: 58,
+            width: 44,
+            height: 52,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -464,19 +481,20 @@ export function Sidebar({ onClose }: SidebarProps) {
             gap: 4,
             background: colors.glass.bg,
             backgroundImage: colors.glass.sheen,
-            backdropFilter: 'blur(20px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+            backdropFilter: 'blur(16px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(140%)',
             border: `1px solid ${colors.glass.border}`,
-            borderRadius: '16px',
-            boxShadow: `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${shadows.lg}`,
+            borderRadius: 999,
+            boxShadow: `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
             cursor: 'pointer',
             zIndex: 2147483647,
-            transition: `transform ${animation.duration.fast} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}`,
+            animation: `qc-fade-in 240ms ${animation.easing.easeOut}`,
+            transition: `transform ${animation.duration.normal} ${animation.easing.easeOut}, box-shadow ${animation.duration.normal} ${animation.easing.easeOut}, border-color ${animation.duration.normal} ${animation.easing.ease}`,
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.06)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.05)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%)'; }}
         >
-          <Logo size={20} />
+          <Logo size={18} />
           <span
             style={{
               width: 5,
@@ -500,8 +518,8 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: 24,
-        height: 24,
+        width: 22,
+        height: 22,
         borderRadius: radius.md,
         color: colors.text.muted,
         background: 'transparent',
