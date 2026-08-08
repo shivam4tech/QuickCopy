@@ -5,3 +5,7 @@ declare module '*.json' {
   const value: unknown;
   export default value;
 }
+
+declare module 'pdfjs-dist/build/pdf.mjs' {
+  export * from 'pdfjs-dist';
+}

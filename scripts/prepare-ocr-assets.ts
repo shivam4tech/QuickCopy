@@ -11,8 +11,6 @@ const TESSERACT_CORE = resolve(ROOT, 'node_modules', 'tesseract.js-core');
 
 const FILES_TO_COPY = [
   { src: resolve(TESSERACT_JS, 'dist', 'worker.min.js'), dest: 'worker.min.js' },
-  { src: resolve(TESSERACT_CORE, 'tesseract-core-lstm.wasm.js'), dest: 'tesseract-core-lstm.wasm.js' },
-  { src: resolve(TESSERACT_CORE, 'tesseract-core-lstm.wasm'), dest: 'tesseract-core-lstm.wasm' },
   { src: resolve(TESSERACT_CORE, 'tesseract-core-simd-lstm.wasm.js'), dest: 'tesseract-core-simd-lstm.wasm.js' },
   { src: resolve(TESSERACT_CORE, 'tesseract-core-simd-lstm.wasm'), dest: 'tesseract-core-simd-lstm.wasm' },
   { src: resolve(TESSERACT_CORE, 'tesseract-core-relaxedsimd-lstm.wasm.js'), dest: 'tesseract-core-relaxedsimd-lstm.wasm.js' },

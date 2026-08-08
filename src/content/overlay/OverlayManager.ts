@@ -12,6 +12,7 @@ export class OverlayManager {
   private startY = 0;
   private currentX = 0;
   private currentY = 0;
+  private topOffset = 0;
   private animationId: number | null = null;
   private onComplete: ((region: Region) => void) | null = null;
   private onCancel: (() => void) | null = null;
@@ -29,11 +30,12 @@ export class OverlayManager {
     this.handleResizeBound = this.handleResize.bind(this);
   }
 
-  show(options?: { onComplete?: (region: Region) => void; onCancel?: () => void }): void {
+  show(options?: { onComplete?: (region: Region) => void; onCancel?: () => void; topOffset?: number }): void {
     if (this.state !== 'idle') return;
 
     this.onComplete = options?.onComplete ?? null;
     this.onCancel = options?.onCancel ?? null;
+    this.topOffset = options?.topOffset ?? 0;
     this.isSelecting = false;
 
     this.createCanvas();
@@ -138,10 +140,10 @@ export class OverlayManager {
     this.canvas.id = OVERLAY_ID;
     this.canvas.style.cssText = `
       position: fixed;
-      top: 0;
+      top: ${this.topOffset}px;
       left: 0;
       width: 100%;
-      height: 100%;
+      height: calc(100% - ${this.topOffset}px);
       z-index: ${OVERLAY_Z_INDEX};
       display: none;
       cursor: crosshair;
@@ -161,7 +163,7 @@ export class OverlayManager {
   private resizeCanvas(): void {
     if (!this.canvas || !this.ctx) return;
     this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.height = Math.max(0, window.innerHeight - this.topOffset);
   }
 
   private handleResize(): void {
@@ -235,8 +237,13 @@ export class OverlayManager {
 
     this.ctx?.clearRect(0, 0, this.canvas!.width, this.canvas!.height);
 
-    this.onCancel?.();
+    // Hide first (state → idle) so onCancel can immediately re-show the
+    // overlay without hitting the "already active" guard. Capture the
+    // callback before hiding — hide() clears it.
+    const onCancel = this.onCancel;
     this.hide();
+
+    onCancel?.();
   }
 
   private removeSelectionListeners(): void {

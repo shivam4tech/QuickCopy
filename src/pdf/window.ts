@@ -1,6 +1,6 @@
-import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf.mjs';
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { OverlayManager } from '@/content/overlay/OverlayManager';
 import { mountSidebar, unmountSidebar } from '@/content/sidebar/index';
 import { clipboardService } from '@/services/ClipboardService';
@@ -9,7 +9,7 @@ import { ocrService } from '@/services/OCRService';
 import { postProcessingService } from '@/services/PostProcessingService';
 import { eventBus } from '@/utils/eventBus';
 import { logger, getErrorMessage } from '@/utils/logger';
-import { STORAGE_KEYS } from '@/shared/constants';
+import { STORAGE_KEYS, SIDEBAR_ID } from '@/shared/constants';
 import { defaultSettings } from '@type/settings';
 import type { ExtensionSettings } from '@type/settings';
 import type { Region, OcrResult } from '@type/index';
@@ -46,6 +46,12 @@ const statusEl = document.getElementById('qc-pdf-status') as HTMLSpanElement;
 const filenameEl = document.getElementById('qc-pdf-filename') as HTMLSpanElement;
 const pagesEl = document.getElementById('qc-pdf-pages') as HTMLElement;
 const errorEl = document.getElementById('qc-pdf-error') as HTMLDivElement;
+const headerEl = document.getElementById('qc-pdf-header') as HTMLElement;
+const pageInputEl = document.getElementById('qc-pdf-page') as HTMLInputElement;
+const totalPagesEl = document.getElementById('qc-pdf-total') as HTMLSpanElement;
+
+let totalPageCount = 0;
+let pageNavFrame = 0;
 
 function setStatus(message: string, tone: 'default' | 'busy' | 'error' | 'success' = 'default'): void {
   statusEl.textContent = message;
@@ -156,6 +162,42 @@ function pageEntryAt(clientX: number, clientY: number): PageEntry | null {
   return null;
 }
 
+/** Page (0-based) whose top edge is closest to the top of the scroll area. */
+function currentPageIndex(): number {
+  const threshold = pagesEl.getBoundingClientRect().top;
+  let best = 0;
+  let bestDist = Infinity;
+  for (const [idx, entry] of pageEntries) {
+    const dist = Math.abs(entry.canvas.getBoundingClientRect().top - threshold);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = idx;
+    } else {
+      break;
+    }
+  }
+  return best;
+}
+
+function scrollToPage(pageIndex: number): void {
+  const entry = pageEntries.get(pageIndex);
+  if (!entry) return;
+  const containerTop = pagesEl.getBoundingClientRect().top;
+  const pageTop = entry.canvas.getBoundingClientRect().top;
+  pagesEl.scrollTop += pageTop - containerTop - 12;
+  pageInputEl.value = String(pageIndex + 1);
+}
+
+function scheduleCurrentPageUpdate(): void {
+  if (pageNavFrame) return;
+  pageNavFrame = requestAnimationFrame(() => {
+    pageNavFrame = 0;
+    if (document.activeElement !== pageInputEl) {
+      pageInputEl.value = String(currentPageIndex() + 1);
+    }
+  });
+}
+
 function cropCanvas(canvas: HTMLCanvasElement, region: Region, rect: DOMRect): string {
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -176,12 +218,14 @@ function cropCanvas(canvas: HTMLCanvasElement, region: Region, rect: DOMRect): s
 function rearmSelection(): void {
   if (processing) return;
   overlay.show({
+    topOffset: headerEl.offsetHeight,
     onComplete: (region) => {
       void handleRegionSelected(region);
     },
     onCancel: () => {
-      logger.debug('PDF selection cancelled');
+      logger.debug('PDF selection cancelled — re-arming');
       setStatus('Drag over the PDF to copy · Esc to close', 'default');
+      rearmSelection();
     },
   });
   setStatus('Drag over the PDF to copy · Esc to close', 'default');
@@ -196,6 +240,9 @@ function closeSidebarAndRearm(): void {
 async function handleRegionSelected(region: Region): Promise<void> {
   if (processing) return;
   processing = true;
+  // Wrong/empty captures must not leave the window dead — unless the sidebar
+  // is up (its close re-arms), put the selection overlay back after an error.
+  let rearmOnDone = false;
 
   try {
     eventBus.emit('capture:started', undefined);
@@ -209,6 +256,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const centerY = region.y + region.height / 2;
     const entry = pageEntryAt(centerX, centerY);
     if (!entry) {
+      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'Drag inside the PDF page' });
       setStatus('Drag inside the PDF page', 'error');
       return;
@@ -257,6 +305,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const cleaned = await postProcessingService.process(ocrResult);
 
     if (cleaned.text.trim().length === 0) {
+      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'No text found — try a different area' });
       setStatus('No text found — try a different area', 'error');
       return;
@@ -269,10 +318,14 @@ async function handleRegionSelected(region: Region): Promise<void> {
   } catch (err) {
     const message = getErrorMessage(err);
     logger.error('PDF capture failed', err);
+    rearmOnDone = true;
     eventBus.emit('status:update', { status: 'error', message: `PDF capture failed: ${message}` });
     setStatus('PDF capture failed', 'error');
   } finally {
     processing = false;
+    if (rearmOnDone && !sidebarMounted) {
+      rearmSelection();
+    }
   }
 }
 
@@ -294,6 +347,16 @@ function onDocumentMouseDown(e: MouseEvent): void {
   if (e.button !== 0) return;
   if (processing) return;
   if (!overlay.isVisible()) return;
+
+  // The toolbar and the sidebar are interactive chrome — a click there must
+  // never start (or cancel) a region selection.
+  const target = e.target as HTMLElement | null;
+  if (target) {
+    if (headerEl.contains(target)) return;
+    const sidebarHost = document.getElementById(SIDEBAR_ID);
+    if (sidebarHost && sidebarHost.contains(target)) return;
+  }
+
   overlay.startSelection(e.clientX, e.clientY);
 }
 
@@ -331,6 +394,12 @@ async function loadPdf(data: ArrayBuffer): Promise<void> {
     setStatus('Loading PDF…', 'busy');
     pdfDoc = await getDocument({ data }).promise;
     await createPages(pdfDoc);
+
+    totalPageCount = Math.min(pdfDoc.numPages, MAX_PLACEHOLDER_PAGES);
+    totalPagesEl.textContent = String(pdfDoc.numPages);
+    pageInputEl.disabled = false;
+    pageInputEl.value = '1';
+
     rearmSelection();
   } catch (err) {
     const message = getErrorMessage(err);
@@ -361,6 +430,21 @@ async function main(): Promise<void> {
   settings = await loadSettings();
 
   document.getElementById('qc-pdf-close')?.addEventListener('click', () => window.close());
+
+  pageInputEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const n = parseInt(pageInputEl.value, 10);
+    if (Number.isNaN(n) || totalPageCount === 0) {
+      pageInputEl.value = String(currentPageIndex() + 1);
+      return;
+    }
+    const clamped = Math.min(Math.max(n, 1), totalPageCount);
+    scrollToPage(clamped - 1);
+    pageInputEl.blur();
+  });
+
+  pagesEl.addEventListener('scroll', scheduleCurrentPageUpdate, { passive: true });
 
   window.addEventListener('keydown', handleKeyDown);
 

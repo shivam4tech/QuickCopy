@@ -63,6 +63,33 @@
         gap: 10px;
         flex-shrink: 0;
       }
+      #qc-pdf-pagenav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #8b949e;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      #qc-pdf-page {
+        width: 48px;
+        padding: 4px 6px;
+        background: #0d1117;
+        border: 1px solid #21262d;
+        border-radius: 6px;
+        color: #e6edf3;
+        font-size: 12px;
+        text-align: center;
+        outline: none;
+        font-variant-numeric: tabular-nums;
+      }
+      #qc-pdf-page:focus {
+        border-color: #58a6ff;
+      }
+      #qc-pdf-page:disabled {
+        opacity: 0.5;
+      }
       #qc-pdf-status {
         font-size: 12px;
         color: #8b949e;
@@ -142,6 +169,10 @@
       </div>
       <div class="actions">
         <span id="qc-pdf-status">Loading…</span>
+        <label id="qc-pdf-pagenav" title="Go to page (Enter)">
+          <input id="qc-pdf-page" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" disabled />
+          <span>/ <span id="qc-pdf-total">–</span></span>
+        </label>
         <button id="qc-pdf-close" title="Close (Esc)">✕</button>
       </div>
     </header>
