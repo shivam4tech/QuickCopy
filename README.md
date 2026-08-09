@@ -10,10 +10,10 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 
 ## Features
 
-- **Drag-to-copy**: hold `Ctrl` (or `Cmd` on macOS) and drag over any region to OCR it and copy the text automatically.
+- **Drag-to-copy**: hold `Alt+Shift` (`Option+Shift` on macOS) and drag over any region to OCR it and copy the text automatically. The drag modifier is configurable in the options page — `Ctrl`/`Cmd` + drag is available too.
 - **Floating panel**: a compact panel shows the recognized text with **Copy** and **Edit** buttons; it closes on its own after a successful copy (configurable delay, or keep it open).
 - **Silent mode**: disable the panel and capture/copy entirely in the background (toggle in the options page).
-- **Keyboard shortcuts**: `Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox to capture a region, `Alt+Shift+S` to toggle the sidebar. (Chrome silently rejects `Alt+Shift+C`, so the Chrome build uses `Alt+Shift+Q`.)
+- **Keyboard shortcuts**: `Alt+Shift+Q` to capture a region and `Alt+Shift+S` to toggle the sidebar — identical in both Chrome and Firefox.
 - **Smart recognition**: Automatic mode analyzes each capture and routes it to the best engine — Tesseract for text, a code-optimized engine (PP-OCRv5) for code — with quality-gated retry. Text-only mode always uses Tesseract.
 - **Themes**: Dark, Light, and System — a liquid-glass design with smooth, hardware-friendly transitions across the settings page, popup, and capture panel.
 - **Two languages**: English is always available; download one additional language (German, Hindi, French, and 50+ more) from within the options page.
@@ -48,12 +48,14 @@ QuickCopy is designed to be **private by default**:
 
 ## Usage
 
-1. Hold `Ctrl` (or `Cmd`) and drag a selection box around the text you want to copy.
+1. Hold `Alt+Shift` (`Option+Shift` on macOS) — or your chosen drag modifier from **Settings → Capture Shortcut** — and drag with the **left mouse button** to draw a selection box around the text you want to copy.
 2. Release the mouse — QuickCopy captures the region, runs OCR, and copies the text automatically.
 3. A panel appears with the result so you can review or edit it before copying again.
 4. The panel closes on its own after the chosen delay following a successful copy (or click **Edit** to keep it open).
 
-To capture with the keyboard instead, press `Alt+Shift+Q` (Chrome) or `Alt+Shift+C` (Firefox) and drag to select.
+To capture with the keyboard instead, press `Alt+Shift+Q` and drag with the **left mouse button** to select.
+
+> **Note**: `Ctrl`/`Cmd` + drag on a link prevents it from opening in a new tab in both Chrome and Firefox (in Chrome, `Ctrl` + drag on a link copies the link URL instead). Capturing still works on the link itself — if it ever gets in the way, switch to the default `Alt+Shift` modifier, or turn the extension off from the popup (On/Off switch) when you don't need it.
 
 > **Tip**: the capture region is padded slightly below the selection so descenders on letters like `g`, `y`, and `p` are not cut off.
 
@@ -70,6 +72,7 @@ QuickCopy always reads English. You can optionally add **one more language**:
 
 | Setting | Description |
 |---|---|
+| Drag Modifier | The modifier held while dragging to capture: `Alt+Shift` (default, works everywhere) or `Ctrl`/`Cmd` |
 | Recognition Mode | Automatic (recommended) — routes each capture to the best engine; Text only — always use Tesseract |
 | Additional Language | English plus one more downloaded language, or None |
 | Downloaded Languages | Manage languages on this device (set as additional / remove) |

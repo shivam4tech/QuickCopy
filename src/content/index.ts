@@ -335,7 +335,10 @@ const mousedownHandler = (e: MouseEvent) => {
     return;
   }
 
-  if (!e.ctrlKey && !e.metaKey) return;
+  const modifierMatches = currentSettings.dragModifier === 'alt+shift'
+    ? e.altKey && e.shiftKey
+    : e.ctrlKey || e.metaKey;
+  if (!modifierMatches) return;
 
   console.log(`[QuickCopy] [1/10] CTRL detected ✓`);
   e.preventDefault();

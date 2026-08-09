@@ -1,13 +1,13 @@
 import type { ThemeMode, CopyBehavior, OcrLanguage, SidebarPosition } from './index';
 
 export interface ExtensionSettings {
-  /** Master switch — when off the extension ignores Ctrl+drag and shortcuts (temporary pause) */
+  /** Master switch — when off the extension ignores drag capture and shortcuts (temporary pause) */
   enabled: boolean;
   theme: ThemeMode;
   sidebarDuration: number;
   sidebarPosition: SidebarPosition;
-  shortcutCapture: string;
-  shortcutSidebar: string;
+  /** Modifier required for drag-to-capture: 'alt+shift' (default) or 'ctrl' (Ctrl/Cmd) */
+  dragModifier: 'ctrl' | 'alt+shift';
   ocrLanguage: OcrLanguage;
   copyBehavior: CopyBehavior;
   autoCopy: boolean;
@@ -39,8 +39,7 @@ export const defaultSettings: ExtensionSettings = {
   theme: 'dark',
   sidebarDuration: 10000,
   sidebarPosition: 'right',
-  shortcutCapture: 'Alt+Shift+Q',
-  shortcutSidebar: 'Alt+Shift+S',
+  dragModifier: 'alt+shift',
   ocrLanguage: 'eng',
   copyBehavior: 'smart',
   autoCopy: true,

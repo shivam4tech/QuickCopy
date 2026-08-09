@@ -124,11 +124,13 @@ The actual token values live as CSS custom properties in `src/styles/global.css`
 ### Capture Flow
 
 ```
-User holds Ctrl + mouse-drag (or Alt+Shift+Q on Chrome / Alt+Shift+C on Firefox)
+User holds the configured drag modifier + mouse-drag (Alt+Shift by default; Ctrl/Cmd
+also available via Settings → Capture Shortcut), or presses Alt+Shift+Q to arm the overlay
        │
        ▼
 mousedownHandler (content/index.ts)
-  - e.ctrlKey || e.metaKey → preventDefault
+  - Modifier match: dragModifier === 'alt+shift' → e.altKey && e.shiftKey
+    (default), or 'ctrl' → e.ctrlKey || e.metaKey → preventDefault
   - Calls beginSelection(clientX, clientY)
        │
        ▼

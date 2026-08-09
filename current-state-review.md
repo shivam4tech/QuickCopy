@@ -122,10 +122,11 @@ src/
 ## Extension Workflow
 
 ```
-User presses Ctrl + mouse-drag (or Alt+Shift+C)
+User holds the configured drag modifier + mouse-drag (Alt+Shift by default; Ctrl/Cmd
+also available), or presses Alt+Shift+Q to arm the overlay
        │
        ▼
-1. Content script detects mousedown+Ctrl (or receives overlay:show from background)
+1. Content script detects mousedown with matching modifier (or receives overlay:show from background)
        │
        ▼
 2. OverlayManager shows full-page canvas → user drags selection → region computed
