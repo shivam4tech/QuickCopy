@@ -19,6 +19,9 @@ import { detectPdfUrl } from '../pdf/PdfDetector';
 import { pdfWindowManager } from '../pdf/PdfWindowManager';
 import { STORAGE_KEYS } from '@shared/constants';
 import { defaultSettings, type ExtensionSettings } from '@type/settings';
+import { initConsoleGate } from '@utils/logGate';
+
+initConsoleGate();
 
 console.log(`[QuickCopy:Background] Service worker starting... (build: ${__BUILD_ID__})`);
 

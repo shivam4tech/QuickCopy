@@ -2,6 +2,9 @@ import { backgroundOcrManager } from '../background/managers/BackgroundOcrManage
 import { handleOcrMessage } from '../background/ocrHost';
 import { handleClipboardWrite } from '../background/clipboardHost';
 import type { ExtensionMessage, MessageResponse } from '@type/messages';
+import { initConsoleGate } from '@utils/logGate';
+
+initConsoleGate();
 
 console.log(`[QuickCopy:OCR] Offscreen OCR host starting... (build: ${__BUILD_ID__})`);
 

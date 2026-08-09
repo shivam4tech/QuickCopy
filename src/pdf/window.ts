@@ -16,6 +16,10 @@ import type { Region, OcrResult } from '@type/index';
 import { clientRegionToPageRegion } from './regionMapper';
 import { extractTextInRegion } from './textExtractor';
 import type { PdfTextContent } from './textExtractor';
+import { initConsoleGate } from '@utils/logGate';
+
+// Silence console output unless debugMode is enabled (see settings).
+initConsoleGate();
 
 /** Hard ceiling on placeholder pages to keep the DOM sane; all pages are present. */
 const MAX_PLACEHOLDER_PAGES = 500;
