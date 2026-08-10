@@ -65,7 +65,14 @@ function setStatus(message: string, tone: 'default' | 'busy' | 'error' | 'succes
 function showError(title: string, detail: string): void {
   setStatus('Error', 'error');
   errorEl.classList.add('visible');
-  errorEl.innerHTML = `<div class="title">${title}</div>${detail}`;
+  errorEl.replaceChildren();
+  const titleEl = document.createElement('div');
+  titleEl.className = 'title';
+  titleEl.textContent = title;
+  errorEl.appendChild(titleEl);
+  const detailEl = document.createElement('div');
+  detailEl.textContent = detail;
+  errorEl.appendChild(detailEl);
 }
 
 function fileNameFromUrl(url: string): string {
@@ -425,7 +432,7 @@ async function main(): Promise<void> {
     logger.warn('Local file PDF unsupported', pdfUrl);
     showError(
       'Local PDF files are not supported yet',
-      'PDFs opened from the browser (https://) work out of the box. Reading local <code>file://</code> PDFs is planned for a future update.',
+      'PDFs opened from the browser (https://) work out of the box. Reading local file:// PDFs is planned for a future update.',
     );
     return;
   }
@@ -475,7 +482,7 @@ async function main(): Promise<void> {
     logger.error('PDF open failed', err);
     showError(
       'Could not open this PDF',
-      `${message}<br/><br/>Tip: website PDFs work out of the box. This URL may require authentication, or the server blocked the request.`,
+      `${message}\n\nTip: website PDFs work out of the box. This URL may require authentication, or the server blocked the request.`,
     );
   }
 }
