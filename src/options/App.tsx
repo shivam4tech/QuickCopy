@@ -55,6 +55,7 @@ const styles = {
     minHeight: 52,
   } as const,
   settingText: {
+    flex: 1,
     minWidth: 0,
   } as const,
   settingLabel: {
@@ -220,6 +221,7 @@ function parseSizeMb(size: string): number {
 
 export function App() {
   const { settings, updateSetting } = useSettings();
+  const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
   const [installedLanguages, setInstalledLanguages] = useState<InstalledLanguage[]>([]);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
@@ -344,6 +346,36 @@ export function App() {
         <p style={styles.subtitle}>
           Make any text on your screen copyable — 100% on your device, nothing ever leaves it.
         </p>
+      </div>
+
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Capture Shortcut</h2>
+        <p style={styles.sectionDesc}>The modifier key used with Drag to capture text.</p>
+        <Card>
+          <CardBody>
+            <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
+              <div style={styles.settingText}>
+                <div style={styles.settingLabel}>
+                  Drag Modifier
+                  <Tooltip text="Hold the chosen modifier with the Left Mouse button while dragging over text to capture it. Both options work in Chrome and Firefox." />
+                </div>
+                <div style={styles.settingDesc}>
+                  {isMac
+                    ? 'Drag with the Left Mouse button while holding Option+Shift to capture — works on every platform. Note: Cmd+drag on a link prevents it from opening in a new tab in both Chrome and Firefox; capturing still works, and if it ever gets in the way, switch to Option+Shift or turn the extension off from the popup.'
+                    : 'Drag with the Left Mouse button while holding Alt+Shift to capture — works on every platform. Note: Ctrl+drag on a link prevents it from opening in a new tab in both Chrome and Firefox; capturing still works, and if it ever gets in the way, switch to Alt+Shift or turn the extension off from the popup.'}
+                </div>
+              </div>
+              <Select
+                value={settings.dragModifier}
+                onChange={(v) => updateSetting('dragModifier', v as 'ctrl' | 'alt+shift')}
+                options={[
+                  { label: `${isMac ? 'Option' : 'Alt'} + Shift + Drag (default)`, value: 'alt+shift' },
+                  { label: `${isMac ? 'Cmd' : 'Ctrl'} + Drag`, value: 'ctrl' },
+                ]}
+              />
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       <div style={styles.section}>

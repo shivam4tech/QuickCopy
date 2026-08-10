@@ -17,6 +17,10 @@ import { languageManager } from '@services/ocr/LanguageManager';
 import type { LanguagesGetDataResponse } from '@type/messages';
 import { base64ToUint8Array } from '@utils/encoding';
 import { enableTrustedTypesWorkers } from '@utils/trustedTypes';
+import { initConsoleGate } from '@utils/logGate';
+
+// Silence console output unless debugMode is enabled (see settings).
+initConsoleGate();
 
 // Patch Worker before anything else can spawn one: pages with Trusted Types
 // policies (report-only or enforced) otherwise flag the OCR worker's blob URL.
@@ -331,7 +335,10 @@ const mousedownHandler = (e: MouseEvent) => {
     return;
   }
 
-  if (!e.ctrlKey && !e.metaKey) return;
+  const modifierMatches = currentSettings.dragModifier === 'alt+shift'
+    ? e.altKey && e.shiftKey
+    : e.ctrlKey || e.metaKey;
+  if (!modifierMatches) return;
 
   console.log(`[QuickCopy] [1/10] CTRL detected ✓`);
   e.preventDefault();

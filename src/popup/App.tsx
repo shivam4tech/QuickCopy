@@ -144,9 +144,10 @@ export function App() {
   const { settings, updateSetting } = useSettings();
 
   const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
-  const isFirefox = navigator.userAgent.includes('Firefox');
-  const modifier = isMac ? 'Cmd' : 'Ctrl';
-  const pdfShortcut = isFirefox ? ['Alt', 'Shift', 'C'] : ['Alt', 'Shift', 'Q'];
+  const dragKeys = settings.dragModifier === 'alt+shift'
+    ? [isMac ? 'Option' : 'Alt', 'Shift']
+    : [isMac ? 'Cmd' : 'Ctrl'];
+  const pdfShortcut = ['Alt', 'Shift', 'Q'];
 
   const openAbout = () => {
     chrome.tabs.create({ url: 'https://github.com/shivam4tech/QuickCopy' });
@@ -247,7 +248,13 @@ export function App() {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>How to use</div>
         <div style={styles.guideCard}>
-          Hold <Kbd>{modifier}</Kbd>
+          Hold{' '}
+          {dragKeys.map((key, i) => (
+            <span key={key}>
+              {i > 0 && <span style={styles.guideSep}>+</span>}
+              <Kbd>{key}</Kbd>
+            </span>
+          ))}
           <span style={styles.guideSep}>+</span>
           <Kbd>Drag</Kbd> with Left Mouse
           <br />

@@ -87,7 +87,7 @@ export function Select({ value, onChange, options, label, disabled = false }: Se
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      style={{ display: 'flex', flexDirection: 'column', gap: spacing[1], position: 'relative', minWidth: 176 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: spacing[1], position: 'relative', minWidth: 'max-content' }}
     >
       {label && (
         <label
@@ -118,6 +118,7 @@ export function Select({ value, onChange, options, label, disabled = false }: Se
         onMouseLeave={() => setHovered(false)}
         style={{
           width: '100%',
+          minWidth: 'max-content',
           display: 'flex',
           alignItems: 'center',
           gap: spacing[2],

@@ -10,6 +10,7 @@ import { OCRManager } from './ocr/OCRManager';
 import type { OcrMode } from './ocr/router/OCRRouter';
 import { settingsService } from './SettingsService';
 import { languageManager } from './ocr/LanguageManager';
+import { isWorkerSpawnBlockedByTrustedTypes } from '@utils/trustedTypes';
 
 interface TesseractWorker {
   recognize(image: string, options?: Record<string, unknown>, output?: Record<string, boolean>): Promise<{ data: { text: string; confidence: number; blocks: unknown[] } }>;
@@ -147,16 +148,91 @@ export class OCRService implements OcrServiceInterface {
       return true;
     }
 
-    // Fast path: try the in-page worker first. The old CSP probe produced
-    // false negatives (pages where `new Worker(extensionUrl)` is blocked but
-    // blob-URL workers work fine), which forced a 20s background wait for no
-    // reason. Attempting the local worker directly is fast when it succeeds
-    // and fails in ~1-2s on pages that genuinely block worker spawns.
+    // Pages with enforce-mode Trusted Types that restrict policy names (e.g.
+    // LinkedIn) cannot spawn in-page workers at all — skip straight to the
+    // background path instead of burning 30s on a doomed worker init.
+    if (isWorkerSpawnBlockedByTrustedTypes()) {
+      logger.info('Trusted Types policy blocks in-page workers — using background OCR');
+      return this.initBackground();
+    }
+
+    // Strict worker-src/script-src CSPs (YouTube, LinkedIn, ...) block blob
+    // workers in the page context; the browser logs a CSP violation for every
+    // attempt. Probe once (cached per page) so we quietly fall back to
+    // background OCR instead of failing loudly on each recognize. The probe
+    // uses a blob URL because that is tesseract's primary worker path.
+    if (!(await this.probeBlobWorkerSpawn())) {
+      logger.info('Page CSP blocks in-page OCR workers — using background OCR');
+      return this.initBackground();
+    }
+
+    // Fast path: try the in-page worker first. The old CSP probe used the
+    // extension worker URL and produced false negatives (pages where that URL
+    // is blocked but blob-URL workers work fine), which forced a 20s
+    // background wait for no reason. The blob-URL probe above mirrors what
+    // tesseract actually does, so it stays in sync.
     if (await this.initLocal()) {
       return true;
     }
 
     return this.initBackground();
+  }
+
+  private blobProbePromise: Promise<boolean> | null = null;
+
+  /**
+   * Probes whether the page allows blob-URL workers. Strict pages report the
+   * CSP violation to the browser console (unavoidable — it is emitted by the
+   * browser itself, not by page JS), but we only trigger it once per page and
+   * never retry, so restricted sites are quiet after the first probe.
+   */
+  private probeBlobWorkerSpawn(): Promise<boolean> {
+    if (this.blobProbePromise) return this.blobProbePromise;
+
+    this.blobProbePromise = new Promise<boolean>((resolve) => {
+      if (typeof Worker === 'undefined') {
+        resolve(false);
+        return;
+      }
+
+      let worker: Worker | null = null;
+      let blobUrl: string | null = null;
+      let settled = false;
+      const finish = (ok: boolean): void => {
+        if (settled) return;
+        settled = true;
+        try { worker?.terminate(); } catch { /* ignore */ }
+        try { if (blobUrl) URL.revokeObjectURL(blobUrl); } catch { /* ignore */ }
+        resolve(ok);
+      };
+
+      try {
+        blobUrl = URL.createObjectURL(new Blob(
+          ['self.onmessage=function(e){self.postMessage("qc-probe-pong")}'],
+          { type: 'text/javascript' },
+        ));
+        const timeout = setTimeout(() => {
+          // No error and no message within the budget — treat as allowed.
+          finish(true);
+        }, 2000);
+
+        worker = new Worker(blobUrl);
+        worker.onmessage = (event) => {
+          if (event.data === 'qc-probe-pong') {
+            clearTimeout(timeout);
+            finish(true);
+          }
+        };
+        worker.onerror = () => {
+          clearTimeout(timeout);
+          finish(false);
+        };
+      } catch {
+        finish(false);
+      }
+    });
+
+    return this.blobProbePromise;
   }
 
   private async initLocal(): Promise<boolean> {
