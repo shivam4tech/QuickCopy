@@ -2,6 +2,7 @@ import type { OverlayState, Region } from '@type/index';
 import { OVERLAY_ID, OVERLAY_Z_INDEX, REGION_SELECTION_MIN_SIZE } from '@shared/constants';
 import { eventBus } from '@utils/eventBus';
 import { logger } from '@utils/logger';
+import { getCaptureViewportSize } from '@utils/viewport';
 
 export class OverlayManager {
   private canvas: HTMLCanvasElement | null = null;
@@ -21,6 +22,7 @@ export class OverlayManager {
   private handleMouseUpBound: (e: MouseEvent) => void;
   private handleMouseLeaveBound: () => void;
   private handleResizeBound: () => void;
+  private handleFullscreenChangeBound: () => void;
 
   constructor() {
     this.handleKeyDownBound = this.handleKeyDown.bind(this);
@@ -28,6 +30,7 @@ export class OverlayManager {
     this.handleMouseUpBound = this.handleMouseUp.bind(this);
     this.handleMouseLeaveBound = this.handleMouseLeave.bind(this);
     this.handleResizeBound = this.handleResize.bind(this);
+    this.handleFullscreenChangeBound = this.handleFullscreenChange.bind(this);
   }
 
   show(options?: { onComplete?: (region: Region) => void; onCancel?: () => void; topOffset?: number }): void {
@@ -45,6 +48,7 @@ export class OverlayManager {
 
     document.addEventListener('keydown', this.handleKeyDownBound);
     window.addEventListener('resize', this.handleResizeBound);
+    document.addEventListener('fullscreenchange', this.handleFullscreenChangeBound);
 
     this.startRenderLoop();
 
@@ -61,6 +65,7 @@ export class OverlayManager {
       this.state = 'selecting';
       document.addEventListener('keydown', this.handleKeyDownBound);
       window.addEventListener('resize', this.handleResizeBound);
+      document.addEventListener('fullscreenchange', this.handleFullscreenChangeBound);
     }
 
     this.isSelecting = true;
@@ -151,22 +156,40 @@ export class OverlayManager {
 
     this.ctx = this.canvas.getContext('2d')!;
     this.resizeCanvas();
-    document.documentElement.appendChild(this.canvas);
+    this.raiseToTop();
   }
 
+  /**
+   * In element fullscreen (YouTube player, etc.) the fullscreen element is
+   * promoted to the browser's top layer and becomes the containing block for
+   * its fixed-position descendants, so the canvas must live INSIDE that
+   * element to stay on top and aligned with clientX/clientY coordinates —
+   * hosting it in the fullscreen element (whose box equals the screen) keeps
+   * the drag box tracking the cursor exactly. Falls back to the document root.
+   */
   private raiseToTop(): void {
-    if (this.canvas) {
-      document.documentElement.appendChild(this.canvas);
-    }
+    if (!this.canvas) return;
+    const host = document.fullscreenElement ?? document.documentElement;
+    host.appendChild(this.canvas);
   }
 
   private resizeCanvas(): void {
     if (!this.canvas || !this.ctx) return;
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = Math.max(0, window.innerHeight - this.topOffset);
+    const { width, height } = getCaptureViewportSize();
+    this.canvas.width = width;
+    this.canvas.height = Math.max(0, height - this.topOffset);
   }
 
   private handleResize(): void {
+    this.resizeCanvas();
+  }
+
+  private handleFullscreenChange(): void {
+    if (this.state === 'idle') return;
+    // Re-parent into (or out of) the fullscreen element and re-measure the
+    // viewport — clientY is relative to the screen in fullscreen, so the box
+    // would drift if we kept the window-sized canvas.
+    this.raiseToTop();
     this.resizeCanvas();
   }
 
@@ -256,6 +279,7 @@ export class OverlayManager {
   private removeEventListeners(): void {
     document.removeEventListener('keydown', this.handleKeyDownBound);
     window.removeEventListener('resize', this.handleResizeBound);
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChangeBound);
     this.removeSelectionListeners();
   }
 
@@ -291,16 +315,22 @@ export class OverlayManager {
 
     const region = this.normalizeRegion();
 
+    // The canvas top edge sits topOffset px below the viewport top (PDF
+    // window: below its toolbar), but region coordinates are viewport-relative
+    // (clientX/clientY). Without shifting the drawn box up by topOffset it
+    // appears shifted downwards by exactly the toolbar height.
+    const drawY = region.y - this.topOffset;
+
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(0, 0, w, h);
 
-    ctx.clearRect(region.x, region.y, region.width, region.height);
+    ctx.clearRect(region.x, drawY, region.width, region.height);
 
     ctx.strokeStyle = '#58a6ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(region.x, region.y, region.width, region.height);
+    ctx.strokeRect(region.x, drawY, region.width, region.height);
 
     ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
-    ctx.fillRect(region.x, region.y, region.width, region.height);
+    ctx.fillRect(region.x, drawY, region.width, region.height);
   }
 }

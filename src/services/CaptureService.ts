@@ -1,6 +1,7 @@
 import type { CaptureResult, Region } from '@type/index';
 import { eventBus } from '@utils/eventBus';
 import { browserMessaging } from '@compat/messaging';
+import { getCaptureViewportSize } from '@utils/viewport';
 
 interface CaptureResponse {
   success: boolean;
@@ -100,8 +101,9 @@ export class CaptureService {
       img.onload = () => {
         if (timedOut) return;
         clearTimeout(timer);
-        const scaleX = img.naturalWidth / window.innerWidth;
-        const scaleY = img.naturalHeight / window.innerHeight;
+        const viewport = getCaptureViewportSize();
+        const scaleX = img.naturalWidth / viewport.width;
+        const scaleY = img.naturalHeight / viewport.height;
 
         const cropX = region.x;
         const cropY = region.y;
@@ -145,7 +147,8 @@ export class CaptureService {
   }
 
   async captureViewport(): Promise<CaptureResult> {
-    const region: Region = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
+    const viewport = getCaptureViewportSize();
+    const region: Region = { x: 0, y: 0, width: viewport.width, height: viewport.height };
     return this.captureRegion(region);
   }
 

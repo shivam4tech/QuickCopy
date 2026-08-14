@@ -3,6 +3,7 @@ import { BrowserCompat } from '@compat/BrowserCompat';
 import { shortcutManager } from './managers/ShortcutManager';
 import { themeManager } from './managers/ThemeManager';
 import { handleOcrMessage } from './ocrHost';
+import { backgroundOcrManager } from './managers/BackgroundOcrManager';
 import { ensureOffscreenDocument } from './offscreenHost';
 import { handleClipboardWrite } from './clipboardHost';
 import { eventBus } from '@utils/eventBus';
@@ -33,6 +34,27 @@ async function isPaused(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Make sure the background OCR worker is initialized and resident so the next
+ * capture on ANY page is instant. Fire-and-forget: on a genuinely cold worker
+ * the first scan may still await init, but keepalives (every 20s) keep the SW
+ * alive through it, so the worker is warm by the time it's needed.
+ */
+async function warmUpBackgroundOcr(): Promise<void> {
+  const settings = await settingsService.getAll();
+  // Build the SAME language string the capture path uses (eng+secondary when
+  // a secondary language is installed), so the warm worker is never torn
+  // down and rebuilt by the first real recognize — that rebuild storm is what
+  // made the second PDF session hang on "No selectable text — OCR…".
+  const lang = await languageManager.getActiveLanguageString(settings.secondaryLanguage ?? null);
+
+  const status = backgroundOcrManager.getStatus();
+  if (status === 'ready' || status === 'initializing') return;
+
+  const result = await backgroundOcrManager.init(lang);
+  console.log(`[QuickCopy:Background] OCR warm-up: ${result.success ? 'ready' : `not ready (${result.reason ?? 'unknown'})`}`);
 }
 
 /**
@@ -129,6 +151,22 @@ function registerCommandHandlers(): void {
 
 registerCommandHandlers();
 
+// Backstop for the content-script heartbeat: the SW also wakes on this alarm
+// (alarms are never throttled, unlike page timers), so it stays resident even
+// when no content script is running — all tabs hidden, or the active tab is a
+// chrome:// page where content scripts don't inject. Each alarm event resets
+// the ~30s SW idle timer, keeping the warm OCR worker alive with no dead
+// window between ticks (0.5 min is the shortest allowed alarm period).
+const KEEPALIVE_ALARM_NAME = 'quickcopy-keepalive';
+const KEEPALIVE_ALARM_INTERVAL_MIN = 0.5;
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== KEEPALIVE_ALARM_NAME) return;
+  void warmUpBackgroundOcr().catch((err) => {
+    console.warn(`[QuickCopy:Background] OCR warm-up (alarm) failed`, getErrorMessage(err));
+  });
+});
+
 async function initialize(): Promise<void> {
   const compat = BrowserCompat.getInstance();
   logger.info(`${EXTENSION_NAME} v${EXTENSION_VERSION} starting`, {
@@ -141,6 +179,12 @@ async function initialize(): Promise<void> {
   const settings = await settingsService.getAll();
 
   themeManager.initialize(settings.theme as ThemeMode);
+
+  try {
+    await chrome.alarms.create(KEEPALIVE_ALARM_NAME, { periodInMinutes: KEEPALIVE_ALARM_INTERVAL_MIN });
+  } catch (err) {
+    console.warn(`[QuickCopy:Background] Could not create keepalive alarm`, getErrorMessage(err));
+  }
 
   eventBus.emit('app:ready', undefined);
   logger.info(`${EXTENSION_NAME} initialized successfully`);
@@ -256,6 +300,16 @@ chrome.runtime.onMessage.addListener((
   sender: chrome.runtime.MessageSender,
   sendResponse: (response: MessageResponse) => void,
 ) => {
+  if (message.type === 'keepalive') {
+    // Heartbeat from open pages: the incoming message itself resets the SW
+    // idle timer, and the warm-up keeps the OCR worker resident so scans on
+    // any page are instant. Both are no-ops when already warm.
+    void warmUpBackgroundOcr().catch((err) => {
+      console.warn(`[QuickCopy:Background] OCR warm-up failed`, getErrorMessage(err));
+    });
+    sendResponse({ success: true });
+    return true;
+  }
   if (message.type === 'capture:viewport') {
     handleCaptureViewport(sender, sendResponse);
     return true;

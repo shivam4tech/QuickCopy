@@ -134,6 +134,10 @@ export interface PdfOpenWindowMessage extends MessageBase {
   pdfUrl: string;
 }
 
+export interface KeepaliveMessage extends MessageBase {
+  type: 'keepalive';
+}
+
 export interface LanguagesGetDataResponse {
   success: boolean;
   /** Base64-encoded traineddata — runtime messaging JSON-serializes, so raw bytes are unsafe. */
@@ -164,7 +168,8 @@ export type ExtensionMessage =
   | StatusUpdateMessage
   | DiagnosticLogMessage
   | LanguagesGetDataMessage
-  | PdfOpenWindowMessage;
+  | PdfOpenWindowMessage
+  | KeepaliveMessage;
 
 export type MessageHandler<T = unknown> = (
   message: ExtensionMessage,

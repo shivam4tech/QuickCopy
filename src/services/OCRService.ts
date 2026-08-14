@@ -81,8 +81,10 @@ export class OCRService implements OcrServiceInterface {
   private async initBackground(): Promise<boolean> {
     if (this.backgroundMode) return true;
 
+    const langStr = await this.getActiveLanguageString();
     const sendProbe = () => browserMessaging.sendMessage<OcrInitResponse>({
       type: 'ocr:init',
+      language: langStr,
       source: 'content',
       target: 'background',
       id: crypto.randomUUID(),
@@ -112,6 +114,11 @@ export class OCRService implements OcrServiceInterface {
       }
 
       console.log(`[QuickCopy] [6/10] Background OCR initializing — polling for readiness (each poll keeps the event page alive)`);
+      // The keepalive heartbeat + alarm keep the service worker resident and
+      // its OCR worker warm, so this is a short, bounded wait: either the warm
+      // worker answers on the first probe, or the cold one becomes ready
+      // quickly. Long polling here previously left the UI stuck on "Performing
+      // OCR..." for over a minute, so keep the deadline tight.
       const deadline = Date.now() + 20000;
       while (Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -171,6 +178,15 @@ export class OCRService implements OcrServiceInterface {
     // is blocked but blob-URL workers work fine), which forced a 20s
     // background wait for no reason. The blob-URL probe above mirrors what
     // tesseract actually does, so it stays in sync.
+    //
+    // Local-first, sequential: the in-page worker is the fastest and most
+    // reliable engine (no service-worker dependency), so prefer it whenever it
+    // can spawn. Only when the page blocks in-page workers (strict CSP,
+    // Trusted Types) do we fall through to the background worker, which the
+    // keepalive keeps warm so it is fast on the pages that actually need it.
+    // A parallel local+background race was tried here and caused multi-minute
+    // hangs (background init storms / backgroundMode flapping), so the two
+    // paths must NOT run concurrently.
     if (await this.initLocal()) {
       return true;
     }
@@ -451,15 +467,19 @@ export class OCRService implements OcrServiceInterface {
 
     try {
       const langStr = await this.getActiveLanguageString();
-      const response = await browserMessaging.sendMessage<OcrRecognizeResponse>({
-        type: 'ocr:recognize',
-        imageData,
-        language: langStr,
-        source: 'content',
-        target: 'background',
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-      });
+      const response = await withTimeout(
+        browserMessaging.sendMessage<OcrRecognizeResponse>({
+          type: 'ocr:recognize',
+          imageData,
+          language: langStr,
+          source: 'content',
+          target: 'background',
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+        }),
+        30000,
+        'background OCR recognize',
+      );
 
       if (response?.success !== true || !response.result) {
         throw new Error(response?.error ?? 'Background OCR returned failure');
@@ -493,6 +513,13 @@ export class OCRService implements OcrServiceInterface {
         type: typeof error,
       });
       const safeErr = error instanceof Error ? error : new Error(getErrorMessage(error));
+      // The background service worker idles out after ~30s. A page that cached
+      // backgroundMode=true then hits a dead worker on the next capture;
+      // without this reset every later attempt reuses the stale mode and fails
+      // the same way (continuous failing scans). Clearing the cached mode
+      // forces the next recognize through initialize() → probe → re-init.
+      this.backgroundMode = false;
+      this.initialized = false;
       eventBus.emit('ocr:failed', safeErr);
       eventBus.emit('status:update', { status: 'error', message: 'OCR failed' });
       throw safeErr;

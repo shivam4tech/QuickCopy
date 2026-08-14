@@ -440,6 +440,10 @@ async function main(): Promise<void> {
   filenameEl.textContent = fileNameFromUrl(pdfUrl);
   settings = await loadSettings();
 
+  // Pre-warm the in-window OCR worker while the PDF loads so the first
+  // capture is instant instead of spending 10–30s on first-time init.
+  void ocrService.initialize().catch(() => undefined);
+
   document.getElementById('qc-pdf-close')?.addEventListener('click', () => window.close());
 
   pageInputEl.addEventListener('keydown', (e) => {
