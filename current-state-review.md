@@ -4,7 +4,7 @@
 
 QuickCopy is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language** (downloaded at runtime into IndexedDB).
 
-**Version**: 1.0.0
+**Version**: 1.2.0
 **Tech Stack**: TypeScript, React, Vite, CRXJS, Tesseract.js, onnxruntime-web
 
 ---
@@ -421,6 +421,6 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 
 **Confidence: 95%**
 
-This review reflects the current codebase after the recent rounds of work: emoji support removed entirely, local-first OCR initialization (no CSP probe), dual-language support with IDB-traineddata management, `gzip: false` worker config, base64 traineddata transport, Trusted Types patch, the consumer-facing options page redesign (Recognition Mode, Downloaded Languages with storage accounting, Copying section with configurable panel dismiss), the liquid-glass dark/light/system theme system (v1.0.0), and the custom (non-native) dropdown that keeps popup styling consistent across Chrome and Firefox.
+This review reflects the current codebase after the recent rounds of work: emoji support removed entirely, local-first OCR initialization (no CSP probe), dual-language support with IDB-traineddata management, `gzip: false` worker config, base64 traineddata transport, Trusted Types patch, the consumer-facing options page redesign (Recognition Mode, Downloaded Languages with storage accounting, Copying section with configurable panel dismiss), the liquid-glass dark/light/system theme system (v1.2.0), and the custom (non-native) dropdown that keeps popup styling consistent across Chrome and Firefox.
 
 Remaining gaps: `prepare-ocr-assets.ts` script internals, `build-firefox.ts` build script, and the full test suite in `__tests__/` are not read in detail — these are build-time helpers and test files which don't affect the runtime architecture understanding.
