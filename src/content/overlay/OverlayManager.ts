@@ -15,6 +15,7 @@ export class OverlayManager {
   private currentY = 0;
   private topOffset = 0;
   private animationId: number | null = null;
+  private lastDpr = 1;
   private onComplete: ((region: Region) => void) | null = null;
   private onCancel: (() => void) | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
@@ -147,8 +148,6 @@ export class OverlayManager {
       position: fixed;
       top: ${this.topOffset}px;
       left: 0;
-      width: 100%;
-      height: calc(100% - ${this.topOffset}px);
       z-index: ${OVERLAY_Z_INDEX};
       display: none;
       cursor: crosshair;
@@ -173,11 +172,21 @@ export class OverlayManager {
     host.appendChild(this.canvas);
   }
 
+  /**
+   * Size the canvas to the viewport. CSS size is set in explicit pixels (not
+   * percentages) and the backing store tracks devicePixelRatio, which browser
+   * zoom mutates while window.innerWidth does not — so the overlay re-scales
+   * with the page zoom and the drag box stays glued to the content.
+   */
   private resizeCanvas(): void {
     if (!this.canvas || !this.ctx) return;
     const { width, height } = getCaptureViewportSize();
-    this.canvas.width = width;
-    this.canvas.height = Math.max(0, height - this.topOffset);
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${Math.max(0, height - this.topOffset)}px`;
+    this.canvas.width = Math.round(width * dpr);
+    this.canvas.height = Math.round(Math.max(0, height - this.topOffset) * dpr);
+    this.lastDpr = dpr;
   }
 
   private handleResize(): void {
@@ -302,8 +311,18 @@ export class OverlayManager {
   private render(): void {
     const c = this.canvas!;
     const ctx = this.ctx!;
-    const w = c.width;
-    const h = c.height;
+    const dpr = window.devicePixelRatio || 1;
+    // Browser zoom changes devicePixelRatio without always firing window
+    // resize — re-measure here (render runs every frame) so the backing store
+    // tracks the zoom and the drag box never drifts from the content.
+    if (dpr !== this.lastDpr) {
+      this.resizeCanvas();
+      this.lastDpr = dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const w = c.width / dpr;
+    const h = c.height / dpr;
 
     ctx.clearRect(0, 0, w, h);
 

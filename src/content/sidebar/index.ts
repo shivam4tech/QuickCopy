@@ -111,6 +111,9 @@ const SIDEBAR_THEME_TOKENS_LIGHT = `
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+/** devicePixelRatio at mount — browser zoom mutates it, so it doubles as the zoom factor. */
+let zoomBaseDpr = 1;
+let zoomResizeHandler: (() => void) | null = null;
 
 export async function mountSidebar(onClose?: () => void, options?: { persistent?: boolean }): Promise<void> {
   if (container) {
@@ -180,10 +183,28 @@ export async function mountSidebar(onClose?: () => void, options?: { persistent?
     persistent: options?.persistent === true,
   }));
 
+  // Counter-scale the panel when the host page is browser-zoomed (devicePixel
+  // Ratio multiplies with the zoom factor) so it keeps its designed size
+  // instead of ballooning with the page. `zoom` scales rendering without
+  // creating a containing block, so the fixed-position panel stays put.
+  zoomBaseDpr = window.devicePixelRatio || 1;
+  zoomResizeHandler = () => {
+    if (!container) return;
+    const dpr = window.devicePixelRatio || 1;
+    const ratio = zoomBaseDpr / dpr;
+    (container.style as CSSStyleDeclaration & { zoom?: string }).zoom = ratio === 1 ? '' : String(ratio);
+  };
+  window.addEventListener('resize', zoomResizeHandler);
+
   logger.info('Sidebar mounted');
 }
 
 export function unmountSidebar(): void {
+  if (zoomResizeHandler) {
+    window.removeEventListener('resize', zoomResizeHandler);
+    zoomResizeHandler = null;
+  }
+
   if (root) {
     root.unmount();
     root = null;
