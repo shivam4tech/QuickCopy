@@ -115,7 +115,10 @@ export class LanguageManager {
     if (!installed) {
       return 'eng';
     }
-    return `eng+${secondaryCode}`;
+    // Primary = the user's selected language so its character set / language
+    // model dominates (otherwise English swallows diacritics: ę→e, ć→c...).
+    // English is kept as a fallback for Latin-script content.
+    return `${secondaryCode}+eng`;
   }
 
   async downloadLanguage(

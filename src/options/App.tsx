@@ -442,6 +442,7 @@ export function App() {
                 value={settings.secondaryLanguage ?? 'none'}
                 onChange={handleLanguageChange}
                 options={secondaryOptions}
+                searchable
               />
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none', paddingBottom: 0 }}>
