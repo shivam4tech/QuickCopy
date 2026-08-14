@@ -284,14 +284,12 @@ async function handleRegionSelected(region: Region): Promise<void> {
   try {
     eventBus.emit('capture:started', undefined);
 
-    if (settings.showPanel && !sidebarMounted) {
-      // persistent: the panel is a results tray here — keep it mounted so it
-      // never auto-dismisses and re-mounts on the next drag (visible as a
-      // "double load").
-      await mountSidebar(closeSidebarInPdfWindow, { persistent: true });
-      sidebarMounted = true;
-    }
-
+    // Freeze the geometry NOW — synchronously, at the moment the drag
+    // completed. The region was dragged against the page's CURRENT scroll
+    // position, so the rect must be measured at that same instant. Any await
+    // below (sidebar mount, text fetch) lets the user scroll, and a rect
+    // measured afterwards maps the box onto DIFFERENT content — the crop
+    // then "starts one line above" the selection.
     const centerX = region.x + region.width / 2;
     const centerY = region.y + region.height / 2;
     const entry = pageEntryAt(centerX, centerY);
@@ -300,21 +298,21 @@ async function handleRegionSelected(region: Region): Promise<void> {
       setStatus('Drag inside the PDF page', 'error');
       return;
     }
+    const rect = entry.canvas.getBoundingClientRect();
+    const pageRegion = clientRegionToPageRegion(region, rect, entry.viewport);
 
-    // Measure the page rect fresh for extraction. The mapping must use the
-    // CURRENT scroll position: the region was dragged against it, and any
-    // await (sidebar mount, text fetch) may shift the page.
-    let rect = entry.canvas.getBoundingClientRect();
+    if (settings.showPanel && !sidebarMounted) {
+      // persistent: the panel is a results tray here — keep it mounted so it
+      // never auto-dismisses and re-mounts on the next drag (visible as a
+      // "double load").
+      await mountSidebar(closeSidebarInPdfWindow, { persistent: true });
+      sidebarMounted = true;
+    }
 
     // 1) Text layer: extraction, never OCR of selectable text. Works even
     //    on a not-yet-rasterized page.
     const extractStart = performance.now();
     const textContent = await entry.page.getTextContent();
-    // Re-measure after the await — the canvas can shift underneath while the
-    // text layer is fetched, and a stale rect maps the region onto the
-    // content ABOVE the selection.
-    rect = entry.canvas.getBoundingClientRect();
-    const pageRegion = clientRegionToPageRegion(region, rect, entry.viewport);
     // pdf.js returns TextMarkedContent entries alongside text items; the
     // extractor skips anything without a `str` property.
     const extracted = extractTextInRegion(textContent as unknown as PdfTextContent, pageRegion);
