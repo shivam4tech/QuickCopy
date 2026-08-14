@@ -23,6 +23,7 @@ interface OcrDisplayData {
   confidence: number;
   duration: number;
   engine?: OcrResult['engine'];
+  fromPdf?: boolean;
 }
 
 const SIDEBAR_EXPAND_EVENT = 'quickcopy:sidebar:set-expanded';
@@ -121,6 +122,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
         confidence: result.confidence,
         duration: result.duration,
         engine: result.engine,
+        fromPdf: result.fromPdf,
       });
       setEditText(result.text);
       setEditing(false);
@@ -428,6 +430,22 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}
                   </div>
+                )}
+
+                {ocrData.fromPdf && (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: fontSizes.xs,
+                      color: colors.accent.info,
+                      background: colors.accentSoft.info,
+                      borderRadius: radius.sm,
+                      padding: `${spacing[1.5]} ${spacing[2]}`,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    PDF capture accuracy can vary — always verify the text against the document.
+                  </span>
                 )}
               </>
             ) : (

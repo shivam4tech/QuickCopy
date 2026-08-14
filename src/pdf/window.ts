@@ -327,6 +327,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
         duration: extractMs,
         blocks: [],
         engine: undefined,
+        fromPdf: true,
       };
       eventBus.emit('postprocessing:completed', result);
       await clipboardService.copy(extracted);
@@ -353,7 +354,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
       return;
     }
 
-    eventBus.emit('postprocessing:completed', cleaned);
+    eventBus.emit('postprocessing:completed', { ...cleaned, fromPdf: true });
     await clipboardService.copy(cleaned.text);
     setStatus(`Copied ✓ — ${statusHint()}`, 'success');
   } catch (err) {
@@ -498,6 +499,22 @@ async function main(): Promise<void> {
   });
 
   pagesEl.addEventListener('scroll', scheduleCurrentPageUpdate, { passive: true });
+
+  // Language changes must apply immediately: the OCR worker is pre-warmed at
+  // window open with the language that was active then, and would otherwise
+  // keep using it until the window (or browser) is reopened.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    const change = changes[STORAGE_KEYS.SETTINGS];
+    if (!change?.newValue) return;
+    const next = { ...defaultSettings, ...(change.newValue as ExtensionSettings) };
+    const prevLang = settings.secondaryLanguage;
+    settings = next;
+    if (prevLang !== next.secondaryLanguage) {
+      logger.info('Secondary language changed — rebuilding OCR worker');
+      void ocrService.rebuildWorker().catch(() => undefined);
+    }
+  });
 
   window.addEventListener('keydown', handleKeyDown);
 

@@ -657,10 +657,13 @@ export class OCRService implements OcrServiceInterface {
   /**
    * Rebuild the OCR worker with the current language settings.
    * Called when the secondary language setting changes.
+   *
+   * Always resets the cached init state, even when no worker exists yet (e.g.
+   * a tab or PDF window that loaded before the language was downloaded): the
+   * next initialize()/recognize() then re-reads the active language and picks
+   * up the new traineddata without needing a browser restart.
    */
   async rebuildWorker(): Promise<void> {
-    if (!this.initialized) return;
-
     console.log(`[QuickCopy] [6/10] Rebuilding OCR worker for language change...`);
 
     if (this.worker && !this.backgroundMode) {
@@ -690,7 +693,7 @@ export class OCRService implements OcrServiceInterface {
     this.workerInitPromise = null;
     this.backgroundMode = false;
 
-    console.log(`[QuickCopy] [6/10] OCR worker reset — will re-init on next recognize()`);
+    console.log(`[QuickCopy] [6/10] OCR worker reset — will re-init with the current language on next recognize()`);
   }
 }
 

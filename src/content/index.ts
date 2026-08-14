@@ -74,14 +74,27 @@ async function syncSecondaryLanguage(code: string | null): Promise<void> {
     return;
   }
 
-  const resp = await browserMessaging.sendMessage<LanguagesGetDataResponse>({
-    type: 'languages:get-data',
-    code,
-    source: 'content',
-    target: 'background',
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-  }).catch(() => undefined);
+  // Pull the traineddata from the extension store into the page cache. A
+  // single attempt can fail transiently (cold service worker, restore races),
+  // and there is no later settings change to re-trigger it — a restart was
+  // the only recovery. Retry a few times so the language works right away.
+  let resp: LanguagesGetDataResponse | undefined;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    resp = await browserMessaging.sendMessage<LanguagesGetDataResponse>({
+      type: 'languages:get-data',
+      code,
+      source: 'content',
+      target: 'background',
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }).catch(() => undefined);
+
+    if (resp?.success && resp.dataBase64) break;
+    if (attempt < 3) {
+      console.warn(`[Language] get-data failed for ${code} (attempt ${attempt}/3) — retrying…`);
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    }
+  }
 
   if (resp?.success && resp.dataBase64) {
     const data = base64ToUint8Array(resp.dataBase64);
