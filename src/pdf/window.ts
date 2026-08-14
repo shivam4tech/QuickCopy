@@ -14,6 +14,7 @@ import { defaultSettings } from '@type/settings';
 import type { ExtensionSettings } from '@type/settings';
 import type { Region, OcrResult } from '@type/index';
 import { clientRegionToPageRegion } from './regionMapper';
+import type { PageRegion } from './regionMapper';
 import { extractTextInRegion } from './textExtractor';
 import type { PdfTextContent } from './textExtractor';
 import { initConsoleGate } from '@utils/logGate';
@@ -209,57 +210,85 @@ function scheduleCurrentPageUpdate(): void {
   });
 }
 
-function cropCanvas(canvas: HTMLCanvasElement, region: Region, rect: DOMRect): string {
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const sx = (region.x - rect.left) * scaleX;
-  const sy = (region.y - rect.top) * scaleY;
-  const sw = region.width * scaleX;
-  const sh = region.height * scaleY;
+/**
+ * Render ONLY the drag region of a page at OCR scale and return it as a data
+ * URL. The region is mapped into PDF user space (via viewport.convertToPdfPoint)
+ * and rendered with its own fresh canvas — it never depends on where the
+ * display canvas happens to be on screen or on the current scroll position,
+ * so it cannot drift from the box the user dragged.
+ */
+async function renderPageRegion(page: PDFPageProxy, region: PageRegion, renderScale: number): Promise<string> {
+  const vp = page.getViewport({ scale: renderScale });
+  // CSS-y grows DOWN, PDF-y grows UP: the region's top-left in CSS is the
+  // max PDF y, its bottom-right the min PDF y.
+  const [cssX0, cssY0] = vp.convertToViewportPoint(region.x0, region.y1);
+  const [cssX1, cssY1] = vp.convertToViewportPoint(region.x1, region.y0);
+  // Integer source coords: rounding at most pulls in half a source pixel
+  // (≈0.25 CSS px at scale 2), never a whole line above/below the box.
+  const sx = Math.max(0, Math.round(cssX0));
+  const sy = Math.max(0, Math.round(cssY0));
+  const sw = Math.min(vp.width - sx, Math.round(cssX1 - cssX0));
+  const sh = Math.min(vp.height - sy, Math.round(cssY1 - cssY0));
+
+  const full = document.createElement('canvas');
+  full.width = vp.width;
+  full.height = vp.height;
+  const fullCtx = full.getContext('2d');
+  if (!fullCtx) throw new Error('Failed to get 2d context for page render');
+  await page.render({ canvas: full, viewport: vp }).promise;
 
   const out = document.createElement('canvas');
-  out.width = Math.max(1, Math.round(sw));
-  out.height = Math.max(1, Math.round(sh));
+  out.width = Math.max(1, sw);
+  out.height = Math.max(1, sh);
   const ctx = out.getContext('2d');
   if (!ctx) throw new Error('Failed to get 2d context for crop');
-  ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  ctx.drawImage(full, sx, sy, sw, sh, 0, 0, out.width, out.height);
   return out.toDataURL('image/png');
 }
 
-function rearmSelection(): void {
-  if (processing) return;
+function statusHint(): string {
+  return settings.dragModifier === 'alt+shift'
+    ? 'Hold Alt+Shift and drag over the PDF to copy'
+    : 'Hold Ctrl/Cmd and drag over the PDF to copy';
+}
+
+/**
+ * Start a capture at the given document point. Called with the drag shortcut
+ * held — identical to how captures work on normal pages. The overlay only
+ * exists during the drag, so outside captures the window behaves like any
+ * document (native scrolling, scrollbar and clicks).
+ */
+function beginSelection(clientX: number, clientY: number): void {
   overlay.show({
     topOffset: headerEl.offsetHeight,
     onComplete: (region) => {
       void handleRegionSelected(region);
     },
     onCancel: () => {
-      logger.debug('PDF selection cancelled — re-arming');
-      setStatus('Drag over the PDF to copy · Esc to close', 'default');
-      rearmSelection();
+      setStatus(`${statusHint()} · Esc to close`, 'default');
     },
   });
-  setStatus('Drag over the PDF to copy · Esc to close', 'default');
+  overlay.startSelection(clientX, clientY);
 }
 
-function closeSidebarAndRearm(): void {
+function closeSidebarInPdfWindow(): void {
   unmountSidebar();
   sidebarMounted = false;
-  rearmSelection();
+  setStatus(`${statusHint()} · Esc to close`, 'default');
 }
 
 async function handleRegionSelected(region: Region): Promise<void> {
   if (processing) return;
   processing = true;
-  // Wrong/empty captures must not leave the window dead — unless the sidebar
-  // is up (its close re-arms), put the selection overlay back after an error.
-  let rearmOnDone = false;
 
   try {
     eventBus.emit('capture:started', undefined);
 
     if (settings.showPanel && !sidebarMounted) {
-      await mountSidebar(closeSidebarAndRearm);
+      // persistent: the panel is a results tray here — keep it mounted so it
+      // never auto-dismisses and re-mounts on the next drag (visible as a
+      // "double load").
+      await mountSidebar(closeSidebarInPdfWindow, { persistent: true });
       sidebarMounted = true;
     }
 
@@ -267,19 +296,25 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const centerY = region.y + region.height / 2;
     const entry = pageEntryAt(centerX, centerY);
     if (!entry) {
-      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'Drag inside the PDF page' });
       setStatus('Drag inside the PDF page', 'error');
       return;
     }
 
-    const rect = entry.canvas.getBoundingClientRect();
-    const pageRegion = clientRegionToPageRegion(region, rect, entry.viewport);
+    // Measure the page rect fresh for extraction. The mapping must use the
+    // CURRENT scroll position: the region was dragged against it, and any
+    // await (sidebar mount, text fetch) may shift the page.
+    let rect = entry.canvas.getBoundingClientRect();
 
     // 1) Text layer: extraction, never OCR of selectable text. Works even
     //    on a not-yet-rasterized page.
     const extractStart = performance.now();
     const textContent = await entry.page.getTextContent();
+    // Re-measure after the await — the canvas can shift underneath while the
+    // text layer is fetched, and a stale rect maps the region onto the
+    // content ABOVE the selection.
+    rect = entry.canvas.getBoundingClientRect();
+    const pageRegion = clientRegionToPageRegion(region, rect, entry.viewport);
     // pdf.js returns TextMarkedContent entries alongside text items; the
     // extractor skips anything without a `str` property.
     const extracted = extractTextInRegion(textContent as unknown as PdfTextContent, pageRegion);
@@ -297,8 +332,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
       };
       eventBus.emit('postprocessing:completed', result);
       await clipboardService.copy(extracted);
-      setStatus('Copied ✓', 'success');
-      afterCopy();
+      setStatus(`Copied ✓ — ${statusHint()}`, 'success');
       return;
     }
 
@@ -307,16 +341,15 @@ async function handleRegionSelected(region: Region): Promise<void> {
     eventBus.emit('status:update', { status: 'busy', message: 'No selectable text — running OCR…' });
     setStatus('No selectable text — OCR…', 'busy');
 
-    if (!entry.rendered) {
-      await renderPageInto(entry);
-    }
-    const cropDataUrl = cropCanvas(entry.canvas, region, rect);
+    // Crop in PDF space via pageRegion: the region is rendered directly with
+    // pdf.js into a fresh canvas, so the OCR image is exactly the box the
+    // user dragged — independent of the on-screen canvas and scroll position.
+    const cropDataUrl = await renderPageRegion(entry.page, pageRegion, 2);
     const preprocessed = await preprocessingService.preprocess(cropDataUrl, 2);
     const ocrResult = await ocrService.recognize(preprocessed.dataUrl);
     const cleaned = await postProcessingService.process(ocrResult);
 
     if (cleaned.text.trim().length === 0) {
-      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'No text found — try a different area' });
       setStatus('No text found — try a different area', 'error');
       return;
@@ -324,40 +357,30 @@ async function handleRegionSelected(region: Region): Promise<void> {
 
     eventBus.emit('postprocessing:completed', cleaned);
     await clipboardService.copy(cleaned.text);
-    setStatus('Copied ✓', 'success');
-    afterCopy();
+    setStatus(`Copied ✓ — ${statusHint()}`, 'success');
   } catch (err) {
     const message = getErrorMessage(err);
     logger.error('PDF capture failed', err);
-    rearmOnDone = true;
     eventBus.emit('status:update', { status: 'error', message: `PDF capture failed: ${message}` });
     setStatus('PDF capture failed', 'error');
   } finally {
     processing = false;
-    if (rearmOnDone && !sidebarMounted) {
-      rearmSelection();
-    }
   }
 }
 
 /**
- * After a successful copy the window stays open for more captures — only the
- * side panel closes (per its own dismissal logic, which calls onClose → the
- * overlay is re-armed for the next drag). With the panel hidden, re-arm
- * directly after a short confirmation pause.
+ * After a successful copy the window stays open for more captures, and the
+ * panel shows the result. No overlay is re-armed: to capture again the user
+ * holds the drag shortcut again — exactly like on normal pages.
  */
-function afterCopy(): void {
-  if (!settings.showPanel) {
-    setTimeout(() => {
-      if (!processing) rearmSelection();
-    }, 700);
-  }
+
+function scrollPages(deltaX: number, deltaY: number): void {
+  pagesEl.scrollBy({ left: deltaX, top: deltaY, behavior: 'auto' });
 }
 
 function onDocumentMouseDown(e: MouseEvent): void {
   if (e.button !== 0) return;
   if (processing) return;
-  if (!overlay.isVisible()) return;
 
   // The toolbar and the sidebar are interactive chrome — a click there must
   // never start (or cancel) a region selection.
@@ -368,11 +391,25 @@ function onDocumentMouseDown(e: MouseEvent): void {
     if (sidebarHost && sidebarHost.contains(target)) return;
   }
 
-  overlay.startSelection(e.clientX, e.clientY);
-}
+  // Overlay up (an active drag): any left press continues the selection.
+  if (overlay.isVisible()) {
+    e.preventDefault();
+    e.stopPropagation();
+    overlay.startSelection(e.clientX, e.clientY);
+    return;
+  }
 
-function scrollPages(deltaX: number, deltaY: number): void {
-  pagesEl.scrollBy({ left: deltaX, top: deltaY, behavior: 'auto' });
+  // Otherwise captures work exactly like on normal pages: hold the drag
+  // modifier and drag. Without it the window behaves like any document —
+  // scrolling, the scrollbar and clicks all work natively.
+  const modifierMatches = settings.dragModifier === 'alt+shift'
+    ? e.altKey && e.shiftKey
+    : e.ctrlKey || e.metaKey;
+  if (!modifierMatches) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+  beginSelection(e.clientX, e.clientY);
 }
 
 function handleKeyDown(e: KeyboardEvent): void {
@@ -396,6 +433,9 @@ function handleKeyDown(e: KeyboardEvent): void {
   }
 
   if (k === 'Escape') {
+    // The overlay cancels the selection itself — never close the window
+    // while a capture is in progress.
+    if (overlay.isVisible()) return;
     window.close();
   }
 }
@@ -411,7 +451,7 @@ async function loadPdf(data: ArrayBuffer): Promise<void> {
     pageInputEl.disabled = false;
     pageInputEl.value = '1';
 
-    rearmSelection();
+    setStatus(`${statusHint()} · Esc to close`, 'default');
   } catch (err) {
     const message = getErrorMessage(err);
     logger.error('PDF open failed', err);
@@ -465,9 +505,13 @@ async function main(): Promise<void> {
 
   // The selection overlay is a fixed full-window canvas above the scroll
   // container, so wheel events never reach it — forward them manually while
-  // the overlay is up (when the sidebar is open, wheel scrolls the panel).
+  // the overlay is up. When the wheel is over the side panel, let it scroll
+  // the panel naturally instead (the panel is raised above the overlay).
   document.addEventListener('wheel', (e) => {
     if (!overlay.isVisible()) return;
+    const target = e.target as HTMLElement | null;
+    const sidebarHost = document.getElementById(SIDEBAR_ID);
+    if (target && sidebarHost && sidebarHost.contains(target)) return;
     e.preventDefault();
     scrollPages(e.deltaX, e.deltaY);
   }, { passive: false, capture: true });

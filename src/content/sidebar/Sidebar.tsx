@@ -9,6 +9,13 @@ import { clipboardService } from '@services/ClipboardService';
 
 interface SidebarProps {
   onClose: () => void;
+  /**
+   * Keeps the panel mounted: disables the auto-dismiss timer (used by the PDF
+   * capture window, where the panel is a persistent results tray and the
+   * auto-close/re-mount cycle would visibly "double-load" the panel on the
+   * next drag).
+   */
+  persistent?: boolean;
 }
 
 interface OcrDisplayData {
@@ -46,7 +53,7 @@ const Logo = ({ size = 18, color = colors.accent.primary }: { size?: number; col
   </svg>
 );
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ onClose, persistent = false }: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
   const [closing, setClosing] = useState(false);
   const [ocrData, setOcrData] = useState<OcrDisplayData | null>(null);
@@ -134,6 +141,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       if (success) {
         setStatus({ label: 'Copied!', variant: 'success' });
         clearDismissTimerRef();
+        if (persistent) return;
         void chrome.storage.local
           .get({ [STORAGE_KEYS.SETTINGS]: defaultSettings })
           .then((res) => {

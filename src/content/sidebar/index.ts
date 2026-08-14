@@ -112,13 +112,12 @@ const SIDEBAR_THEME_TOKENS_LIGHT = `
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-export async function mountSidebar(onClose?: () => void): Promise<void> {
+export async function mountSidebar(onClose?: () => void, options?: { persistent?: boolean }): Promise<void> {
   if (container) {
     logger.debug('Sidebar already mounted');
     raiseSidebarToTop();
     return;
   }
-
   const { createRoot } = await import('react-dom/client');
   const { Sidebar } = await import('./Sidebar');
 
@@ -178,6 +177,7 @@ export async function mountSidebar(onClose?: () => void): Promise<void> {
   root = createRoot(mountPoint);
   root.render(createElement(Sidebar, {
     onClose: onClose ?? unmountSidebar,
+    persistent: options?.persistent === true,
   }));
 
   logger.info('Sidebar mounted');
@@ -199,6 +199,11 @@ export function unmountSidebar(): void {
 
 export function raiseSidebarToTop(): void {
   if (!container) return;
+  // Already the last child: appending again would remove and re-insert the
+  // host, which restarts the panel's entrance animation — visibly a second
+  // "load" of the side panel.
+  const parent = container.parentNode;
+  if (parent && parent.lastChild === container) return;
   document.documentElement.appendChild(container);
   logStackingContext();
 }
