@@ -12,6 +12,7 @@ interface SelectProps {
   options: SelectOption[];
   label?: string;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 function prefersReducedMotion(): boolean {
@@ -19,22 +20,30 @@ function prefersReducedMotion(): boolean {
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Select({ value, onChange, options, label, disabled = false }: SelectProps) {
+export function Select({ value, onChange, options, label, disabled = false, searchable = false }: SelectProps) {
   const id = useId();
   const listId = `${id}-list`;
   const [open, setOpen] = useState(false);
   const [entered, setEntered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((o) => o.value === value)));
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find((o) => o.value === value);
   const reduced = prefersReducedMotion();
 
+  const q = query.trim().toLowerCase();
+  const visibleOptions = searchable && q
+    ? options.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q))
+    : options;
+
   useEffect(() => {
-    if (open) setActiveIndex(Math.max(0, options.findIndex((o) => o.value === value)));
-  }, [open, value, options]);
+    if (!open) return;
+    setQuery('');
+    setActiveIndex(Math.max(0, visibleOptions.findIndex((o) => o.value === value)));
+  }, [open, value, options, searchable]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,13 +75,13 @@ export function Select({ value, onChange, options, label, disabled = false }: Se
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIndex((i) => (i + 1) % options.length);
+      setActiveIndex((i) => (i + 1) % Math.max(1, visibleOptions.length));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((i) => (i - 1 + options.length) % options.length);
+      setActiveIndex((i) => (i - 1 + Math.max(1, visibleOptions.length)) % Math.max(1, visibleOptions.length));
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      const opt = options[activeIndex];
+      const opt = visibleOptions[activeIndex];
       if (opt) onChange(opt.value);
       close();
     } else if (e.key === 'Escape') {
@@ -182,13 +191,46 @@ export function Select({ value, onChange, options, label, disabled = false }: Se
             borderRadius: radius.lg,
             boxShadow: shadows.lg,
             padding: spacing[1],
+            maxHeight: 320,
+            overflowY: 'auto',
             opacity: reduced ? 1 : entered ? 1 : 0,
             transform: reduced ? 'none' : entered ? 'translateY(0)' : 'translateY(-6px)',
             transition: reduced ? 'none' : `opacity ${animation.duration.fast} ${animation.easing.easeOut}, transform ${animation.duration.fast} ${animation.easing.easeOut}`,
             transformOrigin: 'top center',
           }}
         >
-          {options.map((opt, i) => {
+          {searchable && (
+            <div style={{ padding: `0 ${spacing[1]} ${spacing[1.5]}`, borderBottom: `1px solid ${colors.border.default}`, marginBottom: spacing[1] }}>
+              <input
+                type="text"
+                autoFocus
+                value={query}
+                placeholder="Search languages…"
+                aria-label="Search languages"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveIndex(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape') return;
+                  e.stopPropagation();
+                }}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: `${spacing[1.5]} ${spacing[2.5]}`,
+                  fontFamily: fonts.sans,
+                  fontSize: fontSizes.sm,
+                  color: colors.text.primary,
+                  background: colors.bg.primary,
+                  border: `1px solid ${colors.border.default}`,
+                  borderRadius: radius.md,
+                  outline: 'none',
+                }}
+              />
+            </div>
+          )}
+          {visibleOptions.map((opt, i) => {
             const isSelected = opt.value === value;
             const isActive = i === activeIndex;
             return (
@@ -226,6 +268,18 @@ export function Select({ value, onChange, options, label, disabled = false }: Se
               </div>
             );
           })}
+          {visibleOptions.length === 0 && (
+            <div
+              style={{
+                padding: `${spacing[2]} ${spacing[3]}`,
+                textAlign: 'center',
+                color: colors.text.muted,
+                fontSize: fontSizes.sm,
+              }}
+            >
+              No languages found
+            </div>
+          )}
         </div>
       )}
     </div>
