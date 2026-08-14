@@ -11,6 +11,7 @@ QuickCopy is a Manifest V3 browser extension that uses optical character recogni
 - **PDF page navigation**: a page counter/input in the PDF window's toolbar for quick jumps, plus a scroll-synced current-page readout.
 - **Firefox store-ready build**: added the `data_collection_permissions` manifest declaration (QuickCopy collects no data → `none`) and hardened the PDF error panel against unsafe HTML — the Firefox package now validates with 0 errors on AMO.
 - **PDF selection fix**: the drag box now tracks the cursor exactly in the PDF window (previously offset below the toolbar).
+- **Fast PDF scanning**: consecutive drag-to-copy in the PDF window now works instantly — the overlay arms per drag (like on regular pages) instead of waiting for the side panel to close, and the panel stays interactive between captures, auto-dismissing after the last copy per your **Close result window after** setting.
 
 > **Privacy first**: QuickCopy does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/QuickCopy) goes a long way. ⭐
 

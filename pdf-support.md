@@ -93,9 +93,13 @@ web pages.
 - **Scrolling**: mouse wheel and keyboard (arrows, PgUp/PgDn, Space, Home/End)
   scroll the document even while the selection overlay is up (the overlay sits
   above the scroll container, so scroll input is forwarded manually).
-- **Multi-copy**: after a copy the window stays open — only the side panel
-  closes (per its own "Close result window after" logic), then the overlay is
-  re-armed for the next drag. Close the PDF view with the ✕ button or Esc.
+- **Multi-copy (instant re-capture)**: the window never blocks the next drag —
+  the selection overlay arms on the first press of each drag, exactly like
+  capture on regular pages. After a copy you can drag again immediately, even
+  while the side panel is still showing. The panel remains fully interactive
+  between captures (Copy/Edit/typing) and closes on its own
+  "Close result window after" delay following the last copy. Close the PDF
+  view with the ✕ button or Esc.
 - **Whole-line selection**: a drag selects any text line whose center falls
   inside the rectangle — dragging over part of a line copies the whole line.
 - **Columns and paragraphs**: horizontal gaps between items on the same line
