@@ -291,16 +291,20 @@ export class OverlayManager {
 
     const region = this.normalizeRegion();
 
+    // The canvas is offset below the header (topOffset), but the region is in
+    // client coordinates — translate when drawing so the box tracks the cursor.
+    const boxY = region.y - this.topOffset;
+
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(0, 0, w, h);
 
-    ctx.clearRect(region.x, region.y, region.width, region.height);
+    ctx.clearRect(region.x, boxY, region.width, region.height);
 
     ctx.strokeStyle = '#58a6ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(region.x, region.y, region.width, region.height);
+    ctx.strokeRect(region.x, boxY, region.width, region.height);
 
     ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
-    ctx.fillRect(region.x, region.y, region.width, region.height);
+    ctx.fillRect(region.x, boxY, region.width, region.height);
   }
 }

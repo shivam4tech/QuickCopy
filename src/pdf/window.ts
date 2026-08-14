@@ -65,7 +65,14 @@ function setStatus(message: string, tone: 'default' | 'busy' | 'error' | 'succes
 function showError(title: string, detail: string): void {
   setStatus('Error', 'error');
   errorEl.classList.add('visible');
-  errorEl.innerHTML = `<div class="title">${title}</div>${detail}`;
+  errorEl.replaceChildren();
+  const titleEl = document.createElement('div');
+  titleEl.className = 'title';
+  titleEl.textContent = title;
+  errorEl.appendChild(titleEl);
+  const detailEl = document.createElement('div');
+  detailEl.textContent = detail;
+  errorEl.appendChild(detailEl);
 }
 
 function fileNameFromUrl(url: string): string {
@@ -219,40 +226,42 @@ function cropCanvas(canvas: HTMLCanvasElement, region: Region, rect: DOMRect): s
   return out.toDataURL('image/png');
 }
 
-function rearmSelection(): void {
-  if (processing) return;
+/**
+ * The selection overlay is NOT kept permanently armed in the PDF window —
+ * it arms on the first mousedown of a drag, exactly like capture on regular
+ * pages. This keeps the side panel fully interactive between captures (and
+ * lets the user drag again instantly after a copy, without waiting for the
+ * panel to close).
+ */
+function armOverlay(): void {
+  if (overlay.isVisible()) return;
   overlay.show({
     topOffset: headerEl.offsetHeight,
     onComplete: (region) => {
       void handleRegionSelected(region);
     },
     onCancel: () => {
-      logger.debug('PDF selection cancelled — re-arming');
+      logger.debug('PDF selection cancelled');
       setStatus('Drag over the PDF to copy · Esc to close', 'default');
-      rearmSelection();
     },
   });
   setStatus('Drag over the PDF to copy · Esc to close', 'default');
 }
 
-function closeSidebarAndRearm(): void {
+function closeSidebar(): void {
   unmountSidebar();
   sidebarMounted = false;
-  rearmSelection();
 }
 
 async function handleRegionSelected(region: Region): Promise<void> {
   if (processing) return;
   processing = true;
-  // Wrong/empty captures must not leave the window dead — unless the sidebar
-  // is up (its close re-arms), put the selection overlay back after an error.
-  let rearmOnDone = false;
 
   try {
     eventBus.emit('capture:started', undefined);
 
     if (settings.showPanel && !sidebarMounted) {
-      await mountSidebar(closeSidebarAndRearm);
+      await mountSidebar(closeSidebar);
       sidebarMounted = true;
     }
 
@@ -260,7 +269,6 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const centerY = region.y + region.height / 2;
     const entry = pageEntryAt(centerX, centerY);
     if (!entry) {
-      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'Drag inside the PDF page' });
       setStatus('Drag inside the PDF page', 'error');
       return;
@@ -291,7 +299,6 @@ async function handleRegionSelected(region: Region): Promise<void> {
       eventBus.emit('postprocessing:completed', result);
       await clipboardService.copy(extracted);
       setStatus('Copied ✓', 'success');
-      afterCopy();
       return;
     }
 
@@ -309,7 +316,6 @@ async function handleRegionSelected(region: Region): Promise<void> {
     const cleaned = await postProcessingService.process(ocrResult);
 
     if (cleaned.text.trim().length === 0) {
-      rearmOnDone = true;
       eventBus.emit('status:update', { status: 'error', message: 'No text found — try a different area' });
       setStatus('No text found — try a different area', 'error');
       return;
@@ -318,39 +324,25 @@ async function handleRegionSelected(region: Region): Promise<void> {
     eventBus.emit('postprocessing:completed', cleaned);
     await clipboardService.copy(cleaned.text);
     setStatus('Copied ✓', 'success');
-    afterCopy();
   } catch (err) {
     const message = getErrorMessage(err);
     logger.error('PDF capture failed', err);
-    rearmOnDone = true;
     eventBus.emit('status:update', { status: 'error', message: `PDF capture failed: ${message}` });
     setStatus('PDF capture failed', 'error');
   } finally {
     processing = false;
-    if (rearmOnDone && !sidebarMounted) {
-      rearmSelection();
-    }
   }
 }
 
 /**
- * After a successful copy the window stays open for more captures — only the
- * side panel closes (per its own dismissal logic, which calls onClose → the
- * overlay is re-armed for the next drag). With the panel hidden, re-arm
- * directly after a short confirmation pause.
+ * The window stays usable for more captures immediately — the next drag arms
+ * the overlay on mousedown, and the side panel (when shown) closes on its own
+ * dismissal delay after the last copy.
  */
-function afterCopy(): void {
-  if (!settings.showPanel) {
-    setTimeout(() => {
-      if (!processing) rearmSelection();
-    }, 700);
-  }
-}
 
 function onDocumentMouseDown(e: MouseEvent): void {
   if (e.button !== 0) return;
   if (processing) return;
-  if (!overlay.isVisible()) return;
 
   // The toolbar and the sidebar are interactive chrome — a click there must
   // never start (or cancel) a region selection.
@@ -361,6 +353,11 @@ function onDocumentMouseDown(e: MouseEvent): void {
     if (sidebarHost && sidebarHost.contains(target)) return;
   }
 
+  // Arm the overlay on the first press of the drag — like capture on regular
+  // pages, so consecutive drags work instantly without waiting for anything.
+  if (!overlay.isVisible()) {
+    armOverlay();
+  }
   overlay.startSelection(e.clientX, e.clientY);
 }
 
@@ -404,7 +401,7 @@ async function loadPdf(data: ArrayBuffer): Promise<void> {
     pageInputEl.disabled = false;
     pageInputEl.value = '1';
 
-    rearmSelection();
+    setStatus('Drag over the PDF to copy · Esc to close', 'default');
   } catch (err) {
     const message = getErrorMessage(err);
     logger.error('PDF open failed', err);
@@ -425,7 +422,7 @@ async function main(): Promise<void> {
     logger.warn('Local file PDF unsupported', pdfUrl);
     showError(
       'Local PDF files are not supported yet',
-      'PDFs opened from the browser (https://) work out of the box. Reading local <code>file://</code> PDFs is planned for a future update.',
+      'PDFs opened from the browser (https://) work out of the box. Reading local file:// PDFs is planned for a future update.',
     );
     return;
   }
@@ -475,7 +472,7 @@ async function main(): Promise<void> {
     logger.error('PDF open failed', err);
     showError(
       'Could not open this PDF',
-      `${message}<br/><br/>Tip: website PDFs work out of the box. This URL may require authentication, or the server blocked the request.`,
+      `${message}\n\nTip: website PDFs work out of the box. This URL may require authentication, or the server blocked the request.`,
     );
   }
 }

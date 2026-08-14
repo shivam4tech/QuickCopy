@@ -56,7 +56,7 @@ export class PreprocessingService {
     });
   }
 
-  private toGrayscale(imageData: ImageData): ImageData {
+  toGrayscale(imageData: ImageData): ImageData {
     const data = imageData.data;
     const pixelCount = data.length / 4;
 
@@ -76,7 +76,7 @@ export class PreprocessingService {
     return imageData;
   }
 
-  private hasColoredForeground(data: Uint8ClampedArray, pixelCount: number): boolean {
+  hasColoredForeground(data: Uint8ClampedArray, pixelCount: number): boolean {
     const coloredTarget = Math.max(1, Math.floor(pixelCount * 0.001));
     const darkTarget = Math.floor(pixelCount * 0.6);
     let colored = 0;
@@ -97,7 +97,7 @@ export class PreprocessingService {
     return colored >= coloredTarget && dark >= darkTarget;
   }
 
-  private processColoredForeground(imageData: ImageData, pixelCount: number): ImageData {
+  processColoredForeground(imageData: ImageData, pixelCount: number): ImageData {
     const data = imageData.data;
     const w = imageData.width;
     const h = imageData.height;
@@ -105,21 +105,45 @@ export class PreprocessingService {
     const k = 0.2;
     const range = 128;
 
-    const gray = new Float32Array(pixelCount);
-    let sum = 0;
+    // Two candidate grayscale channels:
+    //  A) colored-fill — separates DARK text on saturated backgrounds
+    //     (red bg → 255, dark text → ~0).
+    //  B) min channel — separates LIGHT text on saturated backgrounds
+    //     (white text → 255, red bg → 0).
+    // The channel with the larger spread wins; the other collapses the text
+    // into the background (white-on-red with A, dark-on-red with B).
+    const chanA = new Float32Array(pixelCount);
+    const chanB = new Float32Array(pixelCount);
+    let meanA = 0;
+    let meanB = 0;
     for (let p = 0, i = 0; p < pixelCount; p++, i += 4) {
       const r = data[i]!;
       const g = data[i + 1]!;
-      const b = data[i + 2]!;
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const blue = data[i + 2]!;
+      const max = Math.max(r, g, blue);
+      const min = Math.min(r, g, blue);
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * blue;
       const sat = max > 0 ? (max - min) / max : 0;
-      gray[p] = luma + sat * (max - luma);
-      sum += gray[p]!;
+      chanA[p] = luma + sat * (max - luma);
+      chanB[p] = min;
+      meanA += chanA[p]!;
+      meanB += chanB[p]!;
+    }
+    meanA /= pixelCount;
+    meanB /= pixelCount;
+
+    let varA = 0;
+    let varB = 0;
+    for (let p = 0; p < pixelCount; p++) {
+      const da = chanA[p]! - meanA;
+      const db = chanB[p]! - meanB;
+      varA += da * da;
+      varB += db * db;
     }
 
-    const lightOnDark = sum / pixelCount < 128;
+    const useA = varA >= varB;
+    const gray = useA ? chanA : chanB;
+    const lightOnDark = (useA ? meanA : meanB) < 128;
     const norm = new Float32Array(pixelCount);
     for (let p = 0; p < pixelCount; p++) {
       norm[p] = lightOnDark ? 255 - gray[p]! : gray[p]!;
