@@ -1,118 +1,25 @@
-import { writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
-import { deflateSync } from 'zlib';
+import { deflateSync, inflateSync } from 'zlib';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SIZES = [16, 48, 128] as const;
+const SIZES = [16, 32, 48, 128] as const;
+const STORE_SIZES = [128, 512] as const;
 const ICON_DIR = resolve(__dirname, '../public/icons');
 const STORE_DIR = resolve(__dirname, '../store-assets');
+const SOURCE = resolve(__dirname, '../assets/ekadanta.png');
 
-type RGB = [number, number, number];
-type RGBA = [number, number, number, number];
+// --- minimal PNG decode (RGB / RGBA, 8-bit, non-interlaced) -----------------
 
-// --- palette ---------------------------------------------------------------
-
-const BG_TOP: RGB = [46, 234, 168];
-const BG_BOTTOM: RGB = [9, 105, 84];
-const BOLT_TOP: RGB = [16, 185, 129];
-const BOLT_BOTTOM: RGB = [4, 120, 87];
-const WHITE: RGB = [255, 255, 255];
-
-function lerp(a: RGB, b: RGB, t: number): RGB {
-  return [
-    a[0] + (b[0] - a[0]) * t,
-    a[1] + (b[1] - a[1]) * t,
-    a[2] + (b[2] - a[2]) * t,
-  ];
+interface DecodedPng {
+  width: number;
+  height: number;
+  /** RGBA, 4 bytes per pixel, top-down rows */
+  data: Buffer;
 }
-
-function blend(dst: RGB, src: RGB, alpha: number): RGB {
-  return [
-    src[0] * alpha + dst[0] * (1 - alpha),
-    src[1] * alpha + dst[1] * (1 - alpha),
-    src[2] * alpha + dst[2] * (1 - alpha),
-  ];
-}
-
-function clamp01(t: number): number {
-  return t < 0 ? 0 : t > 1 ? 1 : t;
-}
-
-// --- shapes ----------------------------------------------------------------
-
-function roundRectContains(x: number, y: number, cx: number, cy: number, w: number, h: number, r: number): boolean {
-  const hw = w / 2;
-  const hh = h / 2;
-  const dx = Math.abs(x - cx);
-  const dy = Math.abs(y - cy);
-  if (dx > hw || dy > hh) return false;
-  if (dx <= hw - r || dy <= hh - r) return true;
-  const ex = dx - (hw - r);
-  const ey = dy - (hh - r);
-  return ex * ex + ey * ey <= r * r;
-}
-
-function polygonContains(x: number, y: number, pts: Array<[number, number]>): boolean {
-  let inside = false;
-  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-    const xi = pts[i]![0];
-    const yi = pts[i]![1];
-    const xj = pts[j]![0];
-    const yj = pts[j]![1];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
-// --- the drawing -----------------------------------------------------------
-
-// Lightning bolt, normalized to a [-0.5, 0.5] box (y down) — lucide-style zap.
-const BOLT: Array<[number, number]> = [
-  [0.0556, -0.5],
-  [-0.5, 0.1],
-  [0, 0.1],
-  [-0.0556, 0.5],
-  [0.5, -0.1],
-  [0, -0.1],
-];
-
-function sample(x: number, y: number, s: number): RGBA {
-  if (!roundRectContains(x, y, s / 2, s / 2, s, s, 0.23 * s)) {
-    return [0, 0, 0, 0];
-  }
-
-  let c = lerp(BG_TOP, BG_BOTTOM, clamp01(y / s));
-  c = blend(c, WHITE, clamp01(1 - y / (0.3 * s)) * 0.16); // top gloss
-  c = blend(c, [0, 0, 0], clamp01((y / s - 0.55) / 0.45) * 0.14); // bottom shade
-
-  const backCx = s / 2 + 0.055 * s;
-  const backCy = s / 2 - 0.055 * s;
-  const frontCx = s / 2 - 0.055 * s;
-  const frontCy = s / 2 + 0.055 * s;
-  const sheetW = 0.52 * s;
-  const sheetH = 0.62 * s;
-
-  if (roundRectContains(x, y, backCx, backCy, sheetW, sheetH, 0.08 * s)) {
-    c = blend(c, WHITE, 0.5);
-  }
-  if (roundRectContains(x, y, frontCx, frontCy, sheetW, sheetH, 0.08 * s)) {
-    c = WHITE;
-  }
-
-  const boltW = 0.3 * s;
-  const boltH = 0.48 * s;
-  const pts = BOLT.map(([bx, by]) => [frontCx + bx * boltW, frontCy + by * boltH] as [number, number]);
-  if (polygonContains(x, y, pts)) {
-    c = lerp(BOLT_TOP, BOLT_BOTTOM, clamp01((y - (frontCy - boltH / 2)) / boltH));
-  }
-
-  return [c[0], c[1], c[2], 255];
-}
-
-// --- PNG writer -------------------------------------------------------------
 
 const crcTable: number[] = [];
 for (let n = 0; n < 256; n++) {
@@ -141,76 +48,193 @@ function chunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([len, typeB, data, crcB]);
 }
 
-function makePNG(size: number): Buffer {
+function paeth(a: number, b: number, c: number): number {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  if (pa <= pb && pa <= pc) return a;
+  if (pb <= pc) return b;
+  return c;
+}
+
+function unfilterRow(filter: number, row: Buffer, prev: Buffer, bpp: number): void {
+  for (let i = 0; i < row.length; i++) {
+    const left = i >= bpp ? row[i - bpp]! : 0;
+    const up = prev[i] ?? 0;
+    const ul = i >= bpp ? (prev[i - bpp] ?? 0) : 0;
+    let v = row[i]!;
+    switch (filter) {
+      case 0:
+        break;
+      case 1:
+        v += left;
+        break;
+      case 2:
+        v += up;
+        break;
+      case 3:
+        v += (left + up) >> 1;
+        break;
+      case 4:
+        v += paeth(left, up, ul);
+        break;
+      default:
+        throw new Error(`Unsupported PNG row filter: ${filter}`);
+    }
+    row[i] = v & 0xff;
+  }
+}
+
+function readPNG(filePath: string): DecodedPng {
+  const buf = readFileSync(filePath);
+  if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error(`${filePath} is not a PNG`);
+
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  const idat: Buffer[] = [];
+
+  while (offset < buf.length) {
+    const len = buf.readUInt32BE(offset);
+    const type = buf.toString('ascii', offset + 4, offset + 8);
+    const data = buf.subarray(offset + 8, offset + 8 + len);
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8]!;
+      colorType = data[9]!;
+    } else if (type === 'IDAT') {
+      idat.push(data);
+    } else if (type === 'IEND') {
+      break;
+    }
+    offset += 12 + len;
+  }
+
+  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
+    throw new Error(`Unsupported PNG format: bit depth ${bitDepth}, color type ${colorType} (want 8-bit RGB/RGBA)`);
+  }
+
+  const bpp = colorType === 6 ? 4 : 3;
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * bpp;
+  const out = Buffer.alloc(width * height * 4);
+  const prev = Buffer.alloc(stride);
+
+  for (let y = 0; y < height; y++) {
+    const f = raw[y * (stride + 1)]!;
+    const row = Buffer.from(raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1)));
+    unfilterRow(f, row, prev, bpp);
+    for (let x = 0; x < width; x++) {
+      const si = x * bpp;
+      const di = (y * width + x) * 4;
+      out[di] = row[si]!;
+      out[di + 1] = row[si + 1]!;
+      out[di + 2] = row[si + 2]!;
+      out[di + 3] = colorType === 6 ? row[si + 3]! : 255;
+    }
+    row.copy(prev);
+  }
+
+  return { width, height, data: out };
+}
+
+// --- high-quality downscale (box/area-average) ------------------------------
+
+function resize(
+  src: Buffer,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
+): Buffer {
+  const out = Buffer.alloc(dstW * dstH * 4);
+  const sx = srcW / dstW;
+  const sy = srcH / dstH;
+
+  for (let y = 0; y < dstH; y++) {
+    const y0 = y * sy;
+    const y1 = Math.min(srcH, (y + 1) * sy);
+    for (let x = 0; x < dstW; x++) {
+      const x0 = x * sx;
+      const x1 = Math.min(srcW, (x + 1) * sx);
+      let r = 0, g = 0, b = 0, a = 0;
+
+      const yi0 = Math.floor(y0);
+      const yi1 = Math.floor(y1);
+      const xi0 = Math.floor(x0);
+      const xi1 = Math.floor(x1);
+
+      for (let yi = yi0; yi < yi1; yi++) {
+        const yOverlap = (Math.min(yi + 1, y1) - Math.max(yi, y0)) / sy;
+        for (let xi = xi0; xi < xi1; xi++) {
+          const xOverlap = (Math.min(xi + 1, x1) - Math.max(xi, x0)) / sx;
+          const w = xOverlap * yOverlap;
+          const si = (yi * srcW + xi) * 4;
+          r += src[si]! * w;
+          g += src[si + 1]! * w;
+          b += src[si + 2]! * w;
+          a += src[si + 3]! * w;
+        }
+      }
+
+      const di = (y * dstW + x) * 4;
+      out[di] = Math.round(r);
+      out[di + 1] = Math.round(g);
+      out[di + 2] = Math.round(b);
+      out[di + 3] = Math.round(a);
+    }
+  }
+
+  return out;
+}
+
+// --- PNG writer (RGBA) ------------------------------------------------------
+
+function makePNG(width: number, height: number, pixels: Buffer): Buffer {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8;
   ihdr[9] = 6;
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
 
-  // Supersample for smooth edges: more samples at small sizes where each
-  // pixel matters, fewer at large sizes where it is already dense.
-  const samples = size <= 48 ? 4 : size <= 128 ? 3 : 2;
-
   const rows: Buffer[] = [];
-  for (let y = 0; y < size; y++) {
-    const row = Buffer.alloc(1 + size * 4);
+  for (let y = 0; y < height; y++) {
+    const row = Buffer.alloc(1 + width * 4);
     row[0] = 0;
-    for (let x = 0; x < size; x++) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let a = 0;
-      for (let sy = 0; sy < samples; sy++) {
-        for (let sx = 0; sx < samples; sx++) {
-          const px = x + (sx + 0.5) / samples;
-          const py = y + (sy + 0.5) / samples;
-          const c = sample(px, py, size);
-          r += c[0];
-          g += c[1];
-          b += c[2];
-          a += c[3];
-        }
-      }
-      const n = samples * samples;
-      const off = 1 + x * 4;
-      row[off] = Math.round(r / n);
-      row[off + 1] = Math.round(g / n);
-      row[off + 2] = Math.round(b / n);
-      row[off + 3] = Math.round(a / n);
-    }
+    pixels.copy(row, 1, y * width * 4, (y + 1) * width * 4);
     rows.push(row);
   }
 
-  const raw = Buffer.concat(rows);
-  const compressed = deflateSync(raw);
-
-  return Buffer.concat([
-    sig,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', compressed),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
+  const compressed = deflateSync(Buffer.concat(rows));
+  return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', compressed), chunk('IEND', Buffer.alloc(0))]);
 }
 
 function run(): void {
-  mkdirSync(ICON_DIR, { recursive: true });
+  const src = readPNG(SOURCE);
+  console.log(`Loaded ${SOURCE} (${src.width}x${src.height})`);
 
+  mkdirSync(ICON_DIR, { recursive: true });
   for (const s of SIZES) {
-    const png = makePNG(s);
+    const resized = resize(src.data, src.width, src.height, s, s);
+    const png = makePNG(s, s, resized);
     const path = resolve(ICON_DIR, `icon${s}.png`);
     writeFileSync(path, png);
     console.log(`Created ${path} (${png.length} bytes)`);
   }
 
   mkdirSync(STORE_DIR, { recursive: true });
-  for (const s of [128, 512] as const) {
-    const png = makePNG(s);
+  for (const s of STORE_SIZES) {
+    const resized = resize(src.data, src.width, src.height, s, s);
+    const png = makePNG(s, s, resized);
     const path = resolve(STORE_DIR, `store-icon-${s}.png`);
     writeFileSync(path, png);
     console.log(`Created ${path} (${png.length} bytes)`);
