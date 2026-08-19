@@ -19,9 +19,9 @@ export function handleOcrMessage(
       sendResponse({ success: false, mode: 'local', reason: 'worker-unavailable' } as unknown as MessageResponse);
     } else {
       backgroundOcrManager.init(language).then(({ success, reason }) => {
-        console.log(`[QuickCopy:OCR] async ocr:init completed`, { success, reason });
+        console.log(`[Ekadanta:OCR] async ocr:init completed`, { success, reason });
       }).catch((err) => {
-        console.error(`[QuickCopy:OCR] async ocr:init handler FAILED`, getErrorMessage(err));
+        console.error(`[Ekadanta:OCR] async ocr:init handler FAILED`, getErrorMessage(err));
       });
       sendResponse({ success: false, mode: 'local', reason: status === 'failed' ? 'init-failed' : 'not-ready' } as unknown as MessageResponse);
     }
@@ -32,7 +32,7 @@ export function handleOcrMessage(
     const timer = setTimeout(() => {
       if (responded) return;
       responded = true;
-      console.error(`[QuickCopy:OCR] ocr:recognize TIMEOUT (${OCR_RECOGNIZE_TIMEOUT_MS}ms)`);
+      console.error(`[Ekadanta:OCR] ocr:recognize TIMEOUT (${OCR_RECOGNIZE_TIMEOUT_MS}ms)`);
       sendResponse({ success: false, error: 'OCR recognize timed out' } as unknown as MessageResponse);
     }, OCR_RECOGNIZE_TIMEOUT_MS);
 
@@ -47,7 +47,7 @@ export function handleOcrMessage(
         if (responded) return;
         responded = true;
         clearTimeout(timer);
-        console.error(`[QuickCopy:OCR] ocr:recognize handler FAILED`, getErrorMessage(err));
+        console.error(`[Ekadanta:OCR] ocr:recognize handler FAILED`, getErrorMessage(err));
         sendResponse({ success: false, error: getErrorMessage(err) } as unknown as MessageResponse);
       });
     return true;

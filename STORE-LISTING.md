@@ -1,13 +1,13 @@
-# QuickCopy — Chrome Web Store Submission Kit (v1.5.2)
+# Ekadanta — Chrome Web Store Submission Kit (v1.6.0)
 
 Everything you need to fill in the Chrome Web Store developer dashboard for
-**QuickCopy 1.5.2**.
+**Ekadanta 1.6.0**.
 
 ## Package
 
 | Item | File | Notes |
 | --- | --- | --- |
-| Upload package | `QuickCopy-chrome-1.5.2.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
+| Upload package | `Ekadanta-chrome-1.6.0.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
 | Store icon | `dist/icons/icon128.png` | 128×128 required. |
 | Privacy policy | `PRIVACY.md` | Push to the repo and host at a public URL (see below). |
 
@@ -23,15 +23,15 @@ Everything you need to fill in the Chrome Web Store developer dashboard for
    becomes the contact shown to users on the store page.
 3. Host the privacy policy: push `PRIVACY.md` to the GitHub repo and either
    - enable GitHub Pages (Settings → Pages → deploy from branch, root), giving
-     `https://shivam4tech.github.io/QuickCopy/PRIVACY.html` style URL, or
-   - reference the raw file: `https://raw.githubusercontent.com/shivam4tech/QuickCopy/main/PRIVACY.md`.
+     `https://shivam4tech.github.io/Ekadanta/PRIVACY.html` style URL, or
+   - reference the raw file: `https://raw.githubusercontent.com/shivam4tech/Ekadanta/main/PRIVACY.md`.
    The dashboard will not let you submit without a privacy policy URL.
 
 ## Dashboard fields
 
 **Listing → Basic info**
 
-- **Name:** QuickCopy — Copy text you can't select
+- **Name:** Ekadanta — Copy text you can't select
 - **Summary (132 chars max):**
   ```
   Copy text from videos, images, PDFs and any visible browser content using OCR — drag to capture, text lands on your clipboard.
@@ -39,14 +39,14 @@ Everything you need to fill in the Chrome Web Store developer dashboard for
 - **Detailed description (markdown supported, max 16,000 chars):**
 
 ```markdown
-QuickCopy extracts text from anything visible on your screen — videos, images,
+Ekadanta extracts text from anything visible on your screen — videos, images,
 PDFs, and regular web pages — and copies it to your clipboard in one drag.
 
 ## How it works
 
 1. Hold **Alt+Shift** (Option+Shift on macOS; Ctrl/Cmd also supported) and drag
    over any region of the screen.
-2. QuickCopy OCRs the selected area with Tesseract.js and copies the text to
+2. Ekadanta OCRs the selected area with Tesseract.js and copies the text to
    your clipboard instantly.
 3. A floating panel shows the result so you can review, edit, or copy again —
    or use **Silent mode** to skip the panel and copy automatically.
@@ -58,7 +58,7 @@ left mouse button. **Alt+Shift+S** toggles the sidebar with your capture history
 
 - **Videos**: subtitles, code on a stream, slides in a talk — capture while playing.
 - **Images**: screenshots, memes, receipts, diagrams.
-- **PDFs**: open any https:// PDF and trigger capture — QuickCopy opens its own
+- **PDFs**: open any https:// PDF and trigger capture — Ekadanta opens its own
   PDF viewer with drag-to-copy. Text-layer pages are extracted exactly (no OCR);
   scanned pages automatically fall back to OCR.
 - **Any web page**: menus, error messages, tables, comparisons.
@@ -72,7 +72,7 @@ restarting the browser.
 
 ## Privacy first
 
-QuickCopy is fully offline: every capture, OCR pass, and clipboard write happens
+Ekadanta is fully offline: every capture, OCR pass, and clipboard write happens
 on your machine. Nothing is collected, stored, or transmitted. No accounts, no
 analytics, no tracking. See the privacy policy for details.
 
@@ -81,7 +81,7 @@ analytics, no tracking. See the privacy policy for details.
 - Configurable drag modifier (Alt+Shift or Ctrl/Cmd)
 - Dark/light theme that follows your system
 - Adjustable panel auto-close delay and silent capture mode
-- Open-source: github.com/shivam4tech/QuickCopy
+- Open-source: github.com/shivam4tech/Ekadanta
 ```
 
 - **Category:** Productivity
@@ -117,13 +117,13 @@ shot; keep UI crisp (1x scale, no browser zoom); PNG or JPG ≤ 2 MB each.
 
 **Support**
 
-- Support URL: https://github.com/shivam4tech/QuickCopy/issues
+- Support URL: https://github.com/shivam4tech/Ekadanta/issues
 - Support email: helloquickcopy@gmail.com (verify once via the dashboard link;
   developer login stays shivam4devs@gmail.com)
 
 ## Publishing flow
 
-1. **Package** → upload `QuickCopy-chrome-1.5.2.zip` (keep "Default" as the
+1. **Package** → upload `Ekadanta-chrome-1.6.0.zip` (keep "Default" as the
    only package; `_locales` not needed).
 2. **Privacy** → paste the privacy policy URL; answer questionnaire (No to all).
 3. **Distribution** → public; add a submitter note. Site access: choose

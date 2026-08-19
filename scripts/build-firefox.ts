@@ -26,7 +26,7 @@ function buildForFirefox(): void {
 
   // Bundle background script into a single IIFE file for Firefox
   execSync(
-    `npx esbuild service-worker-loader.js --bundle --format=iife --global-name=QuickCopyBackground --outfile=background.js`,
+    `npx esbuild service-worker-loader.js --bundle --format=iife --global-name=EkadantaBackground --outfile=background.js`,
     { cwd: DIST_FIREFOX, stdio: 'inherit' },
   );
 

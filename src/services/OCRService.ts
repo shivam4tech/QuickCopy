@@ -95,7 +95,7 @@ export class OCRService implements OcrServiceInterface {
     const toDead = (r?: OcrInitResponse): boolean => r?.reason === 'worker-unavailable' || r?.reason === 'init-failed';
 
     try {
-      console.log(`[QuickCopy] [6/10] Probing background OCR worker...`);
+      console.log(`[Ekadanta] [6/10] Probing background OCR worker...`);
       let response: OcrInitResponse | undefined;
       try {
         response = await withTimeout(sendProbe(), 3000, 'background OCR probe');
@@ -105,15 +105,15 @@ export class OCRService implements OcrServiceInterface {
 
       if (toReady(response)) {
         this.backgroundMode = true;
-        console.log(`[QuickCopy] [6/10] OCR worker is running in the BACKGROUND context`);
+        console.log(`[Ekadanta] [6/10] OCR worker is running in the BACKGROUND context`);
         return true;
       }
       if (toDead(response)) {
-        console.log(`[QuickCopy] [6/10] Background OCR unavailable (${response?.reason}) — using local worker`);
+        console.log(`[Ekadanta] [6/10] Background OCR unavailable (${response?.reason}) — using local worker`);
         return false;
       }
 
-      console.log(`[QuickCopy] [6/10] Background OCR initializing — polling for readiness (each poll keeps the event page alive)`);
+      console.log(`[Ekadanta] [6/10] Background OCR initializing — polling for readiness (each poll keeps the event page alive)`);
       // The keepalive heartbeat + alarm keep the service worker resident and
       // its OCR worker warm, so this is a short, bounded wait: either the warm
       // worker answers on the first probe, or the cold one becomes ready
@@ -126,11 +126,11 @@ export class OCRService implements OcrServiceInterface {
           const next = await withTimeout(sendProbe(), 2000, 'background OCR poll');
           if (toReady(next)) {
             this.backgroundMode = true;
-            console.log(`[QuickCopy] [6/10] OCR worker became ready in the BACKGROUND context`);
+            console.log(`[Ekadanta] [6/10] OCR worker became ready in the BACKGROUND context`);
             return true;
           }
           if (toDead(next)) {
-            console.log(`[QuickCopy] [6/10] Background OCR unavailable (${next?.reason}) — using local worker`);
+            console.log(`[Ekadanta] [6/10] Background OCR unavailable (${next?.reason}) — using local worker`);
             return false;
           }
         } catch {
@@ -138,10 +138,10 @@ export class OCRService implements OcrServiceInterface {
         }
       }
 
-      console.warn(`[QuickCopy] [6/10] Background OCR did not become ready within 20s — using local worker`);
+      console.warn(`[Ekadanta] [6/10] Background OCR did not become ready within 20s — using local worker`);
       return false;
     } catch (err) {
-      console.warn(`[QuickCopy] [6/10] Background OCR probe FAILED`, getErrorMessage(err));
+      console.warn(`[Ekadanta] [6/10] Background OCR probe FAILED`, getErrorMessage(err));
       return false;
     }
   }
@@ -151,7 +151,7 @@ export class OCRService implements OcrServiceInterface {
     if (!isExtensionContextValid()) return false;
 
     if (this.initialized) {
-      console.log(`[QuickCopy] [6/10] OCR worker already initialized (${this.backgroundMode ? 'background' : 'local'})`);
+      console.log(`[Ekadanta] [6/10] OCR worker already initialized (${this.backgroundMode ? 'background' : 'local'})`);
       return true;
     }
 
@@ -253,7 +253,7 @@ export class OCRService implements OcrServiceInterface {
 
   private async initLocal(): Promise<boolean> {
     if (this.workerInitPromise) {
-      console.log(`[QuickCopy] [6/10] OCR worker initialization already in progress, waiting...`);
+      console.log(`[Ekadanta] [6/10] OCR worker initialization already in progress, waiting...`);
       await this.workerInitPromise;
       return this.initialized;
     }
@@ -263,10 +263,10 @@ export class OCRService implements OcrServiceInterface {
       const initStart = performance.now();
       await withTimeout(this.workerInitPromise, 30000, 'OCR worker initialization');
       this.initialized = true;
-      console.log(`[QuickCopy] [6/10] OCR worker ready ✓ (${Math.round(performance.now() - initStart)}ms)`);
+      console.log(`[Ekadanta] [6/10] OCR worker ready ✓ (${Math.round(performance.now() - initStart)}ms)`);
       return true;
     } catch (err) {
-      console.error(`[QuickCopy] [6/10] OCR worker FAILED`, {
+      console.error(`[Ekadanta] [6/10] OCR worker FAILED`, {
         message: getErrorMessage(err),
         stack: getErrorStack(err),
         type: typeof err,
@@ -280,11 +280,11 @@ export class OCRService implements OcrServiceInterface {
   }
 
   private async initWorker(): Promise<void> {
-    console.log(`[QuickCopy] [6/10] Importing tesseract.js...`);
+    console.log(`[Ekadanta] [6/10] Importing tesseract.js...`);
 
     const importStart = performance.now();
     const Tesseract = await import('tesseract.js');
-    console.log(`[QuickCopy] [6/10] tesseract.js imported in ${Math.round(performance.now() - importStart)}ms`);
+    console.log(`[Ekadanta] [6/10] tesseract.js imported in ${Math.round(performance.now() - importStart)}ms`);
 
     const baseUrl = chrome.runtime.getURL('tessdata/');
     const workerPath = `${baseUrl}worker.min.js`;
@@ -292,15 +292,15 @@ export class OCRService implements OcrServiceInterface {
     const langPath = baseUrl;
 
     const langStr = await this.getActiveLanguageString();
-    console.log(`[QuickCopy] [6/10] OCR language: ${langStr}`);
+    console.log(`[Ekadanta] [6/10] OCR language: ${langStr}`);
 
-    console.log(`[QuickCopy] [6/10] Worker paths:`, {
+    console.log(`[Ekadanta] [6/10] Worker paths:`, {
       workerPath,
       corePath,
       langPath,
     });
 
-    console.log(`[QuickCopy] [6/10] Environment probe (Task 5/6):`, {
+    console.log(`[Ekadanta] [6/10] Environment probe (Task 5/6):`, {
       documentOrigin: window.location.origin,
       locationOrigin: window.location.origin,
       locationHref: window.location.href,
@@ -314,7 +314,7 @@ export class OCRService implements OcrServiceInterface {
       })(),
     });
 
-    console.log(`[QuickCopy] [6/10] Service worker registrations:`, await (async () => {
+    console.log(`[Ekadanta] [6/10] Service worker registrations:`, await (async () => {
       try {
         const regs = await navigator.serviceWorker?.getRegistrations();
         return regs?.map(r => r.scope) ?? [];
@@ -323,10 +323,10 @@ export class OCRService implements OcrServiceInterface {
       }
     })());
 
-    console.log(`[QuickCopy] [6/10] Verifying tessdata assets...`);
+    console.log(`[Ekadanta] [6/10] Verifying tessdata assets...`);
     try {
       const workerResp = await fetch(workerPath, { method: 'HEAD' });
-      console.log(`[QuickCopy] [6/10] worker.min.js:`, {
+      console.log(`[Ekadanta] [6/10] worker.min.js:`, {
         status: workerResp.status,
         statusText: workerResp.statusText,
         contentType: workerResp.headers.get('content-type') ?? 'none',
@@ -335,7 +335,7 @@ export class OCRService implements OcrServiceInterface {
       });
 
       const traineddataResp = await fetch(`${baseUrl}eng.traineddata`, { method: 'HEAD' });
-      console.log(`[QuickCopy] [6/10] eng.traineddata:`, {
+      console.log(`[Ekadanta] [6/10] eng.traineddata:`, {
         status: traineddataResp.status,
         statusText: traineddataResp.statusText,
         contentType: traineddataResp.headers.get('content-type') ?? 'none',
@@ -345,14 +345,14 @@ export class OCRService implements OcrServiceInterface {
       });
 
       const coreResp = await fetch(`${baseUrl}tesseract-core-simd-lstm.wasm.js`, { method: 'HEAD' });
-      console.log(`[QuickCopy] [6/10] tesseract-core-simd-lstm.wasm.js:`, {
+      console.log(`[Ekadanta] [6/10] tesseract-core-simd-lstm.wasm.js:`, {
         status: coreResp.status,
         contentType: coreResp.headers.get('content-type') ?? 'none',
         redirected: coreResp.redirected,
         finalUrl: coreResp.url,
       });
     } catch (fetchErr) {
-      console.error(`[QuickCopy] [6/10] Asset verification FAILED`, {
+      console.error(`[Ekadanta] [6/10] Asset verification FAILED`, {
         message: getErrorMessage(fetchErr),
         stack: getErrorStack(fetchErr),
       });
@@ -387,31 +387,31 @@ export class OCRService implements OcrServiceInterface {
 
     const ocrLogger = (msg: { status: string; progress: number }) => {
       if (msg.status === 'loading tesseract core') {
-        console.log(`[QuickCopy] [6/10] Loading Tesseract core...`);
+        console.log(`[Ekadanta] [6/10] Loading Tesseract core...`);
         eventBus.emit('status:update', { status: 'busy', message: 'Loading OCR engine...' });
       } else if (msg.status === 'initializing tesseract') {
-        console.log(`[QuickCopy] [6/10] Initializing Tesseract...`);
+        console.log(`[Ekadanta] [6/10] Initializing Tesseract...`);
         eventBus.emit('status:update', { status: 'busy', message: 'Initializing OCR...' });
       } else if (msg.status === 'loading language traineddata') {
-        console.log(`[QuickCopy] [6/10] Loading language data...`);
+        console.log(`[Ekadanta] [6/10] Loading language data...`);
         eventBus.emit('status:update', { status: 'busy', message: 'Loading language data...' });
       } else if (msg.status === 'initializing api') {
-        console.log(`[QuickCopy] [6/10] Starting OCR engine...`);
+        console.log(`[Ekadanta] [6/10] Starting OCR engine...`);
         eventBus.emit('status:update', { status: 'busy', message: 'Starting OCR engine...' });
       } else if (msg.status === 'recognizing') {
-        console.log(`[QuickCopy] [7/10] OCR recognizing... ${Math.round(msg.progress * 100)}%`);
+        console.log(`[Ekadanta] [7/10] OCR recognizing... ${Math.round(msg.progress * 100)}%`);
       } else {
-        console.log(`[QuickCopy] [6/10] Tesseract: ${msg.status} (${Math.round(msg.progress * 100)}%)`);
+        console.log(`[Ekadanta] [6/10] Tesseract: ${msg.status} (${Math.round(msg.progress * 100)}%)`);
       }
       logger.debug(`Tesseract: ${msg.status} (${Math.round(msg.progress * 100)}%)`);
     };
 
-    console.log(`[QuickCopy] [6/10] Creating Tesseract worker...`);
+    console.log(`[Ekadanta] [6/10] Creating Tesseract worker...`);
     const workerStart = performance.now();
 
     let workerInstance: unknown;
     const heartbeat = setInterval(() => {
-      console.warn(`[QuickCopy] [6/10] Still awaiting createWorker() after ${Math.round(performance.now() - workerStart)}ms — worker promise has NOT settled`);
+      console.warn(`[Ekadanta] [6/10] Still awaiting createWorker() after ${Math.round(performance.now() - workerStart)}ms — worker promise has NOT settled`);
     }, 5000);
     try {
       try {
@@ -422,9 +422,9 @@ export class OCRService implements OcrServiceInterface {
           gzip: false,
           logger: ocrLogger,
         });
-        console.log(`[QuickCopy] [6/10] createWorker succeeded via default (blob URL) worker path`);
+        console.log(`[Ekadanta] [6/10] createWorker succeeded via default (blob URL) worker path`);
       } catch (blobPathErr) {
-        console.warn(`[QuickCopy] [6/10] createWorker via blob URL path FAILED — retrying with direct extension worker URL`, describeError(blobPathErr));
+        console.warn(`[Ekadanta] [6/10] createWorker via blob URL path FAILED — retrying with direct extension worker URL`, describeError(blobPathErr));
         workerInstance = await Tesseract.createWorker(langStr, undefined, {
           workerPath,
           corePath,
@@ -433,15 +433,15 @@ export class OCRService implements OcrServiceInterface {
           gzip: false,
           logger: ocrLogger,
         });
-        console.log(`[QuickCopy] [6/10] createWorker succeeded via direct extension worker URL path`);
+        console.log(`[Ekadanta] [6/10] createWorker succeeded via direct extension worker URL path`);
       }
     } catch (createErr) {
-      console.error(`[QuickCopy] [6/10] Tesseract.createWorker() THREW (both paths)`, describeError(createErr));
+      console.error(`[Ekadanta] [6/10] Tesseract.createWorker() THREW (both paths)`, describeError(createErr));
       throw createErr;
     } finally {
       clearInterval(heartbeat);
     }
-    console.log(`[QuickCopy] [6/10] createWorker() returned:`, {
+    console.log(`[Ekadanta] [6/10] createWorker() returned:`, {
       type: typeof workerInstance,
       isNull: workerInstance === null,
       isUndefined: workerInstance === undefined,
@@ -455,12 +455,12 @@ export class OCRService implements OcrServiceInterface {
 
     this.worker = workerInstance as unknown as TesseractWorker;
 
-    console.log(`[QuickCopy] [6/10] Worker created in ${Math.round(performance.now() - workerStart)}ms`);
+    console.log(`[Ekadanta] [6/10] Worker created in ${Math.round(performance.now() - workerStart)}ms`);
     logger.info('OCRService: worker initialized');
   }
 
   private async recognizeInBackground(imageData: string): Promise<OcrResult> {
-    console.log(`[QuickCopy] [7/10] OCR started (background worker)`);
+    console.log(`[Ekadanta] [7/10] OCR started (background worker)`);
     const startTime = performance.now();
     eventBus.emit('ocr:started', undefined);
     eventBus.emit('status:update', { status: 'busy', message: 'Performing OCR...' });
@@ -489,7 +489,7 @@ export class OCRService implements OcrServiceInterface {
       const duration = performance.now() - startTime;
       ocrResult.duration = duration;
 
-      console.log(`[QuickCopy] [8/10] OCR finished ✓ (background)`, {
+      console.log(`[Ekadanta] [8/10] OCR finished ✓ (background)`, {
         textLength: ocrResult.text.length,
         confidence: ocrResult.confidence.toFixed(1) + '%',
         blockCount: ocrResult.blocks.length,
@@ -497,7 +497,7 @@ export class OCRService implements OcrServiceInterface {
       });
 
       if (ocrResult.text.length === 0) {
-        console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${ocrResult.confidence})`);
+        console.warn(`[Ekadanta] [8/10] OCR returned empty text (confidence: ${ocrResult.confidence})`);
       }
 
       eventBus.emit('ocr:completed', ocrResult);
@@ -506,7 +506,7 @@ export class OCRService implements OcrServiceInterface {
 
       return ocrResult;
     } catch (error) {
-      console.error(`[QuickCopy] [7/10] OCR FAILED (background)`, {
+      console.error(`[Ekadanta] [7/10] OCR FAILED (background)`, {
         message: getErrorMessage(error),
         stack: getErrorStack(error),
         durationMs: Math.round(performance.now() - startTime),
@@ -528,12 +528,12 @@ export class OCRService implements OcrServiceInterface {
 
   async recognize(imageData: string, _language?: OcrLanguage): Promise<OcrResult> {
     if (this._disposed) throw new Error('OCRService disposed');
-    console.log(`[QuickCopy] [7/10] OCR started`);
+    console.log(`[Ekadanta] [7/10] OCR started`);
 
     const ready = await this.initialize();
     if (!ready) {
       const errMsg = 'OCR worker not available';
-      console.error(`[QuickCopy] [7/10] OCR FAILED: ${errMsg}`);
+      console.error(`[Ekadanta] [7/10] OCR FAILED: ${errMsg}`);
       throw new Error(errMsg);
     }
 
@@ -552,7 +552,7 @@ export class OCRService implements OcrServiceInterface {
       const result = await manager.recognize(imageData, _language);
       result.duration = performance.now() - startTime;
 
-      console.log(`[QuickCopy] [8/10] OCR finished ✓`, {
+      console.log(`[Ekadanta] [8/10] OCR finished ✓`, {
         textLength: result.text.length,
         confidence: result.confidence.toFixed(1) + '%',
         blockCount: result.blocks.length,
@@ -565,7 +565,7 @@ export class OCRService implements OcrServiceInterface {
       });
 
       if (result.text.length === 0) {
-        console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${result.confidence})`);
+        console.warn(`[Ekadanta] [8/10] OCR returned empty text (confidence: ${result.confidence})`);
       }
 
       eventBus.emit('ocr:completed', result);
@@ -574,7 +574,7 @@ export class OCRService implements OcrServiceInterface {
 
       return result;
     } catch (error) {
-      console.error(`[QuickCopy] [7/10] OCR FAILED`, {
+      console.error(`[Ekadanta] [7/10] OCR FAILED`, {
         message: getErrorMessage(error),
         stack: getErrorStack(error),
         durationMs: Math.round(performance.now() - startTime),
@@ -605,7 +605,7 @@ export class OCRService implements OcrServiceInterface {
     const blocks = flattenTesseractBlocks(result.data.blocks);
 
     if (text.length === 0) {
-      console.warn(`[QuickCopy] [8/10] OCR returned empty text (confidence: ${confidence})`);
+      console.warn(`[Ekadanta] [8/10] OCR returned empty text (confidence: ${confidence})`);
     }
 
     return {
@@ -664,7 +664,7 @@ export class OCRService implements OcrServiceInterface {
    * up the new traineddata without needing a browser restart.
    */
   async rebuildWorker(): Promise<void> {
-    console.log(`[QuickCopy] [6/10] Rebuilding OCR worker for language change...`);
+    console.log(`[Ekadanta] [6/10] Rebuilding OCR worker for language change...`);
 
     if (this.worker && !this.backgroundMode) {
       try {
@@ -693,7 +693,7 @@ export class OCRService implements OcrServiceInterface {
     this.workerInitPromise = null;
     this.backgroundMode = false;
 
-    console.log(`[QuickCopy] [6/10] OCR worker reset — will re-init with the current language on next recognize()`);
+    console.log(`[Ekadanta] [6/10] OCR worker reset — will re-init with the current language on next recognize()`);
   }
 }
 

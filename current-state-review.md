@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-QuickCopy is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language** (downloaded at runtime into IndexedDB).
+Ekadanta is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language** (downloaded at runtime into IndexedDB).
 
 **Version**: 1.2.0
 **Tech Stack**: TypeScript, React, Vite, CRXJS, Tesseract.js, onnxruntime-web
@@ -222,7 +222,7 @@ There is **no CSP probe** — the old `canSpawnWorkersLocally()` (which could co
 
 ### Trusted Types Patch
 
-Pages with Trusted Types policies (report-only or enforced) flag blob-URL workers. `content/index.ts` calls `enableTrustedTypesWorkers()` at startup (before anything else): it wraps the isolated-world `Worker` constructor with a Proxy that converts string URLs through a local `quickcopy#worker` TrustedScriptURL policy. Purely additive — pages without Trusted Types are unaffected.
+Pages with Trusted Types policies (report-only or enforced) flag blob-URL workers. `content/index.ts` calls `enableTrustedTypesWorkers()` at startup (before anything else): it wraps the isolated-world `Worker` constructor with a Proxy that converts string URLs through a local `ekadanta#worker` TrustedScriptURL policy. Purely additive — pages without Trusted Types are unaffected.
 
 ### Asset Loading
 
@@ -349,7 +349,7 @@ Content detection via `ContentDetector` (regex-weighted scoring) determines whic
 
 3. **Race condition in content script storage access**: Content script uses `chrome.storage.local.get()` directly (bypassing `settingsService`) for `currentSettings`, while the background uses `settingsService`. Two parallel sources of truth for settings.
 
-4. **`MESSAGE_IDS` constants are unused**: `constants.ts` defines string constants like `CAPTURE_REGION: 'quickcopy:capture-region'` but the actual messages use TypeScript union types from `messages.ts` with string literals like `'capture:viewport'`. The `MESSAGE_IDS` map is dead code.
+4. **`MESSAGE_IDS` constants are unused**: `constants.ts` defines string constants like `CAPTURE_REGION: 'ekadanta:capture-region'` but the actual messages use TypeScript union types from `messages.ts` with string literals like `'capture:viewport'`. The `MESSAGE_IDS` map is dead code.
 
 5. **Unused barrel exports**: `src/compat/index.ts` re-exports all compat modules but most files import compat modules directly rather than through the barrel.
 

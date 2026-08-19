@@ -160,7 +160,7 @@ export class OCRManager {
 
     info.recognitionMs = info.recognitionMs || performance.now() - start;
     if (!result) {
-      throw new Error(`[QuickCopy] OCR failed: both engines unavailable (route=${decision.reason}, codeWarm=${this.codeOcr.isReady()})`);
+      throw new Error(`[Ekadanta] OCR failed: both engines unavailable (route=${decision.reason}, codeWarm=${this.codeOcr.isReady()})`);
     }
     result.engine = info;
     this.onRoute?.(info);

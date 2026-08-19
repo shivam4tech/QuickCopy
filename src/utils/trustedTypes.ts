@@ -7,7 +7,7 @@
  * TrustedScriptURL (via a policy) eliminates those reports and lets in-page
  * OCR work even on enforce-mode pages. Policy resolution order:
  *   1. the page's own default policy (no new policy, no CSP violation)
- *   2. a locally-created `quickcopy#worker` policy (allowed unless the page
+ *   2. a locally-created `ekadanta#worker` policy (allowed unless the page
  *      restricts policy names, e.g. LinkedIn)
  *   3. nothing — worker spawns are blocked by the page's CSP; callers can
  *      check isWorkerSpawnBlockedByTrustedTypes() and use a fallback path.
@@ -43,7 +43,7 @@ export function enableTrustedTypesWorkers(): void {
 
   if (!policy) {
     try {
-      policy = tt.createPolicy('quickcopy#worker', {
+      policy = tt.createPolicy('ekadanta#worker', {
         createScriptURL: (url: string) => url,
       });
     } catch {

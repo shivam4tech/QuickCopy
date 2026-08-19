@@ -380,7 +380,7 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Appearance</h2>
-        <p style={styles.sectionDesc}>Choose how QuickCopy looks across the settings page, popup and capture panel.</p>
+        <p style={styles.sectionDesc}>Choose how Ekadanta looks across the settings page, popup and capture panel.</p>
         <Card>
           <CardBody>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
@@ -406,7 +406,7 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Text Recognition</h2>
-        <p style={styles.sectionDesc}>How QuickCopy reads the text you select.</p>
+        <p style={styles.sectionDesc}>How Ekadanta reads the text you select.</p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
@@ -435,7 +435,7 @@ export function App() {
                   <Tooltip text="Reading takes a little longer when an additional language is active." />
                 </div>
                 <div style={styles.settingDesc}>
-                  QuickCopy always reads English. You can optionally add one more language.
+                  Ekadanta always reads English. You can optionally add one more language.
                 </div>
               </div>
               <Select
@@ -580,7 +580,7 @@ export function App() {
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>About</h2>
         <p style={styles.sectionDesc}>
-          QuickCopy is free, open source, and private by design — it collects no data, ever.
+          Ekadanta is free, open source, and private by design — it collects no data, ever.
         </p>
         <Card>
           <CardBody>
@@ -609,21 +609,21 @@ export function App() {
                 <div style={styles.settingLabel}>Repository</div>
               </div>
               <a
-                href="https://github.com/shivam4tech/QuickCopy"
+                href="https://github.com/shivam4tech/Ekadanta"
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: colors.accent.primary, fontSize: fontSizes.sm }}
               >
-                github.com/shivam4tech/QuickCopy
+                github.com/shivam4tech/Ekadanta
               </a>
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
               <div>
-                <div style={styles.settingLabel}>Enjoying QuickCopy?</div>
+                <div style={styles.settingLabel}>Enjoying Ekadanta?</div>
                 <div style={styles.settingDesc}>It is free and open source. A star helps more people find it.</div>
               </div>
               <a
-                href="https://github.com/shivam4tech/QuickCopy"
+                href="https://github.com/shivam4tech/Ekadanta"
                 target="_blank"
                 rel="noreferrer"
                 style={{

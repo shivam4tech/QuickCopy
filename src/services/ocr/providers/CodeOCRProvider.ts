@@ -79,10 +79,10 @@ export class CodeOCRProvider implements OCRProvider {
   private async createEngine(): Promise<boolean> {
     try {
       if (typeof Worker === 'undefined') {
-        console.warn(`[QuickCopy] CodeOCR skipped: no Worker API in this context (service worker)`);
+        console.warn(`[Ekadanta] CodeOCR skipped: no Worker API in this context (service worker)`);
         return false;
       }
-      console.log(`[QuickCopy] CodeOCR warm-up starting (loading PP-OCRv5 + onnxruntime-web)...`);
+      console.log(`[Ekadanta] CodeOCR warm-up starting (loading PP-OCRv5 + onnxruntime-web)...`);
       const t0 = performance.now();
       const workerUrlMod = await import('@ocr-web/core/worker?worker&url');
       const { OcrEngineWorker } = await import('@ocr-web/core');
@@ -103,14 +103,14 @@ export class CodeOCRProvider implements OCRProvider {
         numThreads: 1,
         onProgress: (p: { loaded: number; total: number; file: string }) => {
           if (p.loaded === p.total) {
-            console.log(`[QuickCopy] CodeOCR loaded ${p.file} in ${Math.round(performance.now() - t0)}ms`);
+            console.log(`[Ekadanta] CodeOCR loaded ${p.file} in ${Math.round(performance.now() - t0)}ms`);
           }
         },
       })) as unknown as CodeOcrEngineLike;
-      console.log(`[QuickCopy] CodeOCR worker ready in ${Math.round(performance.now() - t0)}ms`);
+      console.log(`[Ekadanta] CodeOCR worker ready in ${Math.round(performance.now() - t0)}ms`);
       return true;
     } catch (err) {
-      console.error('[QuickCopy] CodeOCR warm-up FAILED', err);
+      console.error('[Ekadanta] CodeOCR warm-up FAILED', err);
       try {
         this.worker?.terminate();
       } catch {

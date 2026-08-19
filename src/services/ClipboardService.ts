@@ -25,7 +25,7 @@ export class ClipboardService {
 
   async copy(text: string, behavior: CopyBehavior = 'smart'): Promise<boolean> {
     const copyText = await this.prepareCopyText(text);
-    console.log(`[QuickCopy] [9/10] Clipboard copy requested`, { textLength: copyText.length, behavior, normalized: copyText !== text });
+    console.log(`[Ekadanta] [9/10] Clipboard copy requested`, { textLength: copyText.length, behavior, normalized: copyText !== text });
 
     try {
       const startTime = performance.now();
@@ -40,7 +40,7 @@ export class ClipboardService {
       }
 
       const elapsed = Math.round(performance.now() - startTime);
-      console.log(`[QuickCopy] [9/10] Clipboard copied ✓ (${elapsed}ms)`);
+      console.log(`[Ekadanta] [9/10] Clipboard copied ✓ (${elapsed}ms)`);
 
       eventBus.emit('clipboard:written', true);
       eventBus.emit('status:update', { status: 'ready', message: 'Copied to clipboard' });
@@ -48,7 +48,7 @@ export class ClipboardService {
       return true;
     } catch (error) {
       const errMsg = getErrorMessage(error);
-      console.error(`[QuickCopy] [9/10] Clipboard FAILED`, {
+      console.error(`[Ekadanta] [9/10] Clipboard FAILED`, {
         message: errMsg,
         stack: getErrorStack(error),
         textLength: copyText.length,
@@ -111,24 +111,24 @@ export class ClipboardService {
       };
       const resp = await browserMessaging.sendMessage<ClipboardWriteResponse>(message);
       if (resp?.success === true) {
-        console.log(`[QuickCopy] [9/10] Copied via background clipboard host ✓`);
+        console.log(`[Ekadanta] [9/10] Copied via background clipboard host ✓`);
         return true;
       }
-      console.log(`[QuickCopy] [9/10] Background clipboard host unavailable (${resp?.error ?? 'unknown'}) — falling back to local copy`);
+      console.log(`[Ekadanta] [9/10] Background clipboard host unavailable (${resp?.error ?? 'unknown'}) — falling back to local copy`);
       return false;
     } catch (err) {
-      console.log(`[QuickCopy] [9/10] Background clipboard host unreachable — falling back to local copy: ${getErrorMessage(err)}`);
+      console.log(`[Ekadanta] [9/10] Background clipboard host unreachable — falling back to local copy: ${getErrorMessage(err)}`);
       return false;
     }
   }
 
   private async copyPlain(text: string): Promise<void> {
     try {
-      console.log(`[QuickCopy] [9/10] Trying navigator.clipboard.writeText...`);
+      console.log(`[Ekadanta] [9/10] Trying navigator.clipboard.writeText...`);
       await timeoutClipboard(navigator.clipboard.writeText(text));
-      console.log(`[QuickCopy] [9/10] navigator.clipboard.writeText succeeded`);
+      console.log(`[Ekadanta] [9/10] navigator.clipboard.writeText succeeded`);
     } catch (primaryErr) {
-      console.log(`[QuickCopy] [9/10] navigator.clipboard.writeText failed: ${getErrorMessage(primaryErr)}, trying execCommand fallback...`);
+      console.log(`[Ekadanta] [9/10] navigator.clipboard.writeText failed: ${getErrorMessage(primaryErr)}, trying execCommand fallback...`);
       await this.copyPlainFallback(text);
     }
   }
@@ -152,22 +152,22 @@ export class ClipboardService {
         document.body.removeChild(textarea);
 
         if (success) {
-          console.log(`[QuickCopy] [9/10] execCommand('copy') succeeded`);
+          console.log(`[Ekadanta] [9/10] execCommand('copy') succeeded`);
           resolve();
         } else {
           const msg = 'execCommand copy returned false';
-          console.error(`[QuickCopy] [9/10] ${msg}`);
+          console.error(`[Ekadanta] [9/10] ${msg}`);
           reject(new Error(msg));
         }
       } catch (fallbackErr) {
-        console.error(`[QuickCopy] [9/10] execCommand fallback FAILED`, getErrorMessage(fallbackErr));
+        console.error(`[Ekadanta] [9/10] execCommand fallback FAILED`, getErrorMessage(fallbackErr));
         reject(fallbackErr instanceof Error ? fallbackErr : new Error(getErrorMessage(fallbackErr)));
       }
     });
   }
 
   private async copyFormatted(text: string): Promise<void> {
-    console.log(`[QuickCopy] [9/10] Trying formatted clipboard write with ClipboardItem...`);
+    console.log(`[Ekadanta] [9/10] Trying formatted clipboard write with ClipboardItem...`);
     const blob = new Blob([text], { type: 'text/html' });
     await timeoutClipboard(
       navigator.clipboard.write([
@@ -177,7 +177,7 @@ export class ClipboardService {
         }),
       ])
     );
-    console.log(`[QuickCopy] [9/10] Formatted clipboard write succeeded`);
+    console.log(`[Ekadanta] [9/10] Formatted clipboard write succeeded`);
   }
 
   async isAvailable(): Promise<boolean> {

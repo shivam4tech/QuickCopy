@@ -52,7 +52,7 @@ async function loadSettings(): Promise<void> {
     const stored = result[STORAGE_KEYS.SETTINGS] as ExtensionSettings | undefined;
     currentSettings = stored ? { ...defaultSettings, ...stored } : { ...defaultSettings };
   } catch (err) {
-    console.warn(`[QuickCopy] Failed to load settings in content script`, getErrorMessage(err));
+    console.warn(`[Ekadanta] Failed to load settings in content script`, getErrorMessage(err));
   }
 }
 
@@ -146,15 +146,15 @@ function handleSettingsChanged(changes: { [key: string]: chrome.storage.StorageC
     const wasEnabled = currentSettings.enabled;
     currentSettings = { ...defaultSettings, ...(change.newValue as ExtensionSettings) };
     if (wasEnabled && !currentSettings.enabled) {
-      console.log('[QuickCopy] Extension paused — hiding overlay and closing panel');
+      console.log('[Ekadanta] Extension paused — hiding overlay and closing panel');
       overlay.hide();
       if (sidebarVisible) closeSidebar();
     }
     const newSecondary = currentSettings.secondaryLanguage;
     if (oldSecondary !== newSecondary) {
-      console.log(`[QuickCopy] Secondary language changed: ${oldSecondary} → ${newSecondary}`);
+      console.log(`[Ekadanta] Secondary language changed: ${oldSecondary} → ${newSecondary}`);
       void syncSecondaryLanguage(newSecondary)
-        .catch((err) => console.warn(`[QuickCopy] Secondary language sync failed`, err))
+        .catch((err) => console.warn(`[Ekadanta] Secondary language sync failed`, err))
         .then(() => ocrService.rebuildWorker().catch(() => {}));
     }
   }
@@ -169,7 +169,7 @@ cleanupFns.push(() => chrome.storage.onChanged.removeListener(handleSettingsChan
 
 function setPipelineState(state: PipelineState): void {
   pipelineState = state;
-  console.log(`[QuickCopy] State: ${state}`);
+  console.log(`[Ekadanta] State: ${state}`);
   eventBus.emit('pipeline:stateChange', state);
 }
 
@@ -177,7 +177,7 @@ function handleMessage(event: MessageEvent): void {
   if (event.source !== window) return;
   if (!event.data?.type) return;
   const type = event.data.type as string;
-  if (type.startsWith('quickcopy:')) {
+  if (type.startsWith('ekadanta:')) {
     logger.debug('Window message received', { type });
   }
 }
@@ -199,7 +199,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
 
     const captureStart = performance.now();
     const captureResult = await captureService.captureRegion(region);
-    console.log(`[QuickCopy] Capture done in ${Math.round(performance.now() - captureStart)}ms`);
+    console.log(`[Ekadanta] Capture done in ${Math.round(performance.now() - captureStart)}ms`);
 
     // Sidebar mounts after capture completes (not during drag)
     if (currentSettings.showPanel) {
@@ -210,7 +210,7 @@ async function handleRegionSelected(region: Region): Promise<void> {
     setPipelineState('preprocessing');
     const preprocessStart = performance.now();
     const preprocessed = await preprocessingService.preprocess(captureResult.dataUrl, 2);
-    console.log(`[QuickCopy] [5/10] Preprocessing complete ✓`, {
+    console.log(`[Ekadanta] [5/10] Preprocessing complete ✓`, {
       originalSize: `${preprocessed.width / 2}x${preprocessed.height / 2}`,
       processedSize: `${preprocessed.width}x${preprocessed.height}`,
       upscaleFactor: 2,
@@ -221,14 +221,14 @@ async function handleRegionSelected(region: Region): Promise<void> {
     setPipelineState('ocr_init');
     const ocrStart = performance.now();
     const ocrResult = await ocrService.recognize(preprocessed.dataUrl);
-    console.log(`[QuickCopy] OCR done in ${Math.round(performance.now() - ocrStart)}ms`);
+    console.log(`[Ekadanta] OCR done in ${Math.round(performance.now() - ocrStart)}ms`);
 
     setPipelineState('postprocessing');
-    console.log(`[QuickCopy] [8/10] Post-processing started`);
+    console.log(`[Ekadanta] [8/10] Post-processing started`);
     const postStart = performance.now();
     eventBus.emit('postprocessing:started', undefined);
     const cleanedResult = await postProcessingService.process(ocrResult);
-    console.log(`[QuickCopy] [8/10] Post-processing complete ✓`, {
+    console.log(`[Ekadanta] [8/10] Post-processing complete ✓`, {
       textLength: cleanedResult.text.length,
       repairCount: cleanedResult.repairCount,
       executionTimeMs: Math.round(performance.now() - postStart),
@@ -238,19 +238,19 @@ async function handleRegionSelected(region: Region): Promise<void> {
     setPipelineState('completed');
 
     if (currentSettings.autoCopy) {
-      console.log(`[QuickCopy] [9.5/10] Auto-copy enabled — copying to clipboard`);
+      console.log(`[Ekadanta] [9.5/10] Auto-copy enabled — copying to clipboard`);
       const clipResult = await clipboardService.copy(cleanedResult.text);
       if (clipResult) {
-        console.log(`[QuickCopy] [10/10] Auto-copied to clipboard ✓`);
+        console.log(`[Ekadanta] [10/10] Auto-copied to clipboard ✓`);
       } else {
-        console.warn(`[QuickCopy] [10/10] Auto-copy FAILED — user can copy from the panel`);
+        console.warn(`[Ekadanta] [10/10] Auto-copy FAILED — user can copy from the panel`);
       }
     } else {
-      console.log(`[QuickCopy] [9.5/10] Auto-copy disabled — awaiting user copy in panel`);
+      console.log(`[Ekadanta] [9.5/10] Auto-copy disabled — awaiting user copy in panel`);
     }
   } catch (error) {
     const errMsg = getErrorMessage(error);
-    console.error(`[QuickCopy] Pipeline FAILED at ${pipelineState}`, {
+    console.error(`[Ekadanta] Pipeline FAILED at ${pipelineState}`, {
       message: errMsg,
       stack: getErrorStack(error),
       type: typeof error,
@@ -265,11 +265,11 @@ async function handleRegionSelected(region: Region): Promise<void> {
 
 async function ensureSidebar(): Promise<void> {
   if (!sidebarVisible) {
-    console.log(`[QuickCopy] Mounting sidebar...`);
+    console.log(`[Ekadanta] Mounting sidebar...`);
     await mountSidebar(closeSidebar);
     sidebarVisible = true;
     eventBus.emit('sidebar:opened', undefined);
-    console.log(`[QuickCopy] Sidebar mounted ✓`);
+    console.log(`[Ekadanta] Sidebar mounted ✓`);
   }
   raiseSidebarToTop();
 }
@@ -280,27 +280,27 @@ function closeSidebar(): void {
   sidebarVisible = false;
   sidebarExpanded = false;
   eventBus.emit('sidebar:closed', undefined);
-  console.log(`[QuickCopy] Sidebar closed ✓`);
+  console.log(`[Ekadanta] Sidebar closed ✓`);
 }
 
 function onSidebarExpandedChanged(e: Event): void {
   sidebarExpanded = (e as CustomEvent<boolean>).detail === true;
 }
 
-window.addEventListener('quickcopy:sidebar:expanded-changed', onSidebarExpandedChanged);
-cleanupFns.push(() => window.removeEventListener('quickcopy:sidebar:expanded-changed', onSidebarExpandedChanged));
+window.addEventListener('ekadanta:sidebar:expanded-changed', onSidebarExpandedChanged);
+cleanupFns.push(() => window.removeEventListener('ekadanta:sidebar:expanded-changed', onSidebarExpandedChanged));
 
 async function beginSelection(clientX?: number, clientY?: number): Promise<void> {
   if (pipelineLock) {
-    console.log(`[QuickCopy] Pipeline locked, ignoring selection`);
+    console.log(`[Ekadanta] Pipeline locked, ignoring selection`);
     return;
   }
   if (pipelineState !== 'idle' && pipelineState !== 'completed' && pipelineState !== 'failed' && pipelineState !== 'cancelled') {
-    console.log(`[QuickCopy] Pipeline busy (${pipelineState}), ignoring selection`);
+    console.log(`[Ekadanta] Pipeline busy (${pipelineState}), ignoring selection`);
     return;
   }
   if (!isExtensionContextValid()) {
-    console.error(`[QuickCopy] Extension context invalidated, cannot begin selection`);
+    console.error(`[Ekadanta] Extension context invalidated, cannot begin selection`);
     return;
   }
 
@@ -329,7 +329,7 @@ async function beginSelection(clientX?: number, clientY?: number): Promise<void>
       overlay.startSelection(clientX, clientY);
     }
   } catch (err) {
-    console.error(`[QuickCopy] beginSelection failed`, err);
+    console.error(`[Ekadanta] beginSelection failed`, err);
     pipelineLock = false;
     setPipelineState('idle');
   }
@@ -353,7 +353,7 @@ const mousedownHandler = (e: MouseEvent) => {
     : e.ctrlKey || e.metaKey;
   if (!modifierMatches) return;
 
-  console.log(`[QuickCopy] [1/10] CTRL detected ✓`);
+  console.log(`[Ekadanta] [1/10] CTRL detected ✓`);
   e.preventDefault();
   e.stopPropagation();
 
@@ -367,7 +367,7 @@ const cleanupMessaging = browserMessaging.onMessage(async (message) => {
   switch (message.type) {
     case 'overlay:show': {
       if (!currentSettings.enabled) {
-        return { success: false, error: 'QuickCopy is paused' };
+        return { success: false, error: 'Ekadanta is paused' };
       }
       beginSelection();
       return { success: true };
@@ -464,7 +464,7 @@ cleanupFns.push(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 
-console.log(`[QuickCopy] Content script loaded (build: ${__BUILD_ID__})`);
+console.log(`[Ekadanta] Content script loaded (build: ${__BUILD_ID__})`);
 logger.info('Content script loaded');
 eventBus.emit('app:ready', undefined);
 

@@ -150,7 +150,7 @@ export function App() {
   const pdfShortcut = ['Alt', 'Shift', 'Q'];
 
   const openAbout = () => {
-    chrome.tabs.create({ url: 'https://github.com/shivam4tech/QuickCopy' });
+    chrome.tabs.create({ url: 'https://github.com/shivam4tech/Ekadanta' });
   };
 
   return (

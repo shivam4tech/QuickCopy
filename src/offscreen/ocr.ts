@@ -6,12 +6,12 @@ import { initConsoleGate } from '@utils/logGate';
 
 initConsoleGate();
 
-console.log(`[QuickCopy:OCR] Offscreen OCR host starting... (build: ${__BUILD_ID__})`);
+console.log(`[Ekadanta:OCR] Offscreen OCR host starting... (build: ${__BUILD_ID__})`);
 
 backgroundOcrManager.init().then(({ success, reason }) => {
-  console.log(`[QuickCopy:OCR] Auto-init result:`, success ? 'ready' : reason ?? 'unknown');
+  console.log(`[Ekadanta:OCR] Auto-init result:`, success ? 'ready' : reason ?? 'unknown');
 }).catch((err) => {
-  console.error(`[QuickCopy:OCR] Auto-init threw`, err);
+  console.error(`[Ekadanta:OCR] Auto-init threw`, err);
 });
 
 chrome.runtime.onMessage.addListener((

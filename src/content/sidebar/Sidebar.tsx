@@ -26,8 +26,8 @@ interface OcrDisplayData {
   fromPdf?: boolean;
 }
 
-const SIDEBAR_EXPAND_EVENT = 'quickcopy:sidebar:set-expanded';
-const SIDEBAR_STATE_EVENT = 'quickcopy:sidebar:expanded-changed';
+const SIDEBAR_EXPAND_EVENT = 'ekadanta:sidebar:set-expanded';
+const SIDEBAR_STATE_EVENT = 'ekadanta:sidebar:expanded-changed';
 
 function engineLabel(engine: NonNullable<OcrResult['engine']>): string {
   const engineName = engine.provider === 'codeocr' ? 'Code OCR' : 'Tesseract';
@@ -320,7 +320,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], minWidth: 0 }}>
               <Logo size={18} />
               <span style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, whiteSpace: 'nowrap' }}>
-                QuickCopy
+                Ekadanta
               </span>
             </div>
 
@@ -490,7 +490,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
       ) : (
         <button
           onClick={() => handleExpand(true)}
-          title="Open QuickCopy"
+          title="Open Ekadanta"
           style={{
             position: 'fixed',
             right: 10,

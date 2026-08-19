@@ -17,7 +17,7 @@ function getTabs(): typeof chrome.tabs {
 
 export const browserMessaging = {
   sendMessage<T = MessageResponse>(message: ExtensionMessage): Promise<T> {
-    console.log(`[QuickCopy] sendMessage`, { type: message.type, id: message.id });
+    console.log(`[Ekadanta] sendMessage`, { type: message.type, id: message.id });
     return (getRuntime().sendMessage(message) as Promise<T>).catch((err: Error) => {
       logger.error('sendMessage failed', err);
       throw err;

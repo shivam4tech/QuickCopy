@@ -2,7 +2,7 @@
 
 ## Overview
 
-QuickCopy is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language**, with the extra language downloaded at runtime into IndexedDB.
+Ekadanta is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language**, with the extra language downloaded at runtime into IndexedDB.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -63,7 +63,7 @@ QuickCopy is a browser extension (MV3) that lets users select a region of any vi
 
 The content script tries to run OCR **locally in the page first** (`initLocal()` — a page worker with `workerBlobURL: true`, falling back to a direct extension-URL worker). If local worker creation fails (restrictive CSPs, Trusted Types, etc.), it falls back to the background/offscreen document (`initBackground()`). This keeps capture fast (~100ms worker init) on the vast majority of pages without a 20s background probe, and only pays the slower background path when actually needed.
 
-Because pages with Trusted Types policies can block blob workers, the content script patches the isolated-world `Worker` constructor at startup (`src/utils/trustedTypes.ts`) — it rewrites string URLs through a local `quickcopy#worker` TrustedScriptURL policy. This is report-only-safe and purely additive.
+Because pages with Trusted Types policies can block blob workers, the content script patches the isolated-world `Worker` constructor at startup (`src/utils/trustedTypes.ts`) — it rewrites string URLs through a local `ekadanta#worker` TrustedScriptURL policy. This is report-only-safe and purely additive.
 
 ### 3. Dual-Engine OCR Routing
 
@@ -103,7 +103,7 @@ The actual token values live as CSS custom properties in `src/styles/global.css`
 
 **Problem**: Content scripts operate in the host page's DOM, risking CSS conflicts.
 
-**Solution**: Both the overlay and sidebar elements are created inside closed Shadow DOMs. This guarantees that QuickCopy's styles never leak into the host page, and host page styles never affect QuickCopy's UI.
+**Solution**: Both the overlay and sidebar elements are created inside closed Shadow DOMs. This guarantees that Ekadanta's styles never leak into the host page, and host page styles never affect Ekadanta's UI.
 
 ## Browser-Specific Handling
 

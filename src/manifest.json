@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "QuickCopy — Copy text you can't select",
-  "version": "1.5.2",
-  "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
+  "name": "Ekadanta — See it. Understand it. Copy it.",
+  "version": "1.6.0",
+  "description": "See it. Understand it. Copy it. Extract text from any visible content — videos, images, PDFs and pages — with on-device OCR.",
   "author": "helloquickcopy@gmail.com",
-  "homepage_url": "https://github.com/shivam4tech/QuickCopy",
+  "homepage_url": "https://github.com/shivam4tech/Ekadanta",
   "minimum_chrome_version": "109",
   "permissions": [
     "storage",
@@ -21,7 +21,7 @@
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "src/popup/index.html",
-    "default_title": "QuickCopy",
+    "default_title": "Ekadanta",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -57,7 +57,7 @@
         "default": "Alt+Shift+S",
         "mac": "Alt+Shift+S"
       },
-      "description": "Toggle QuickCopy sidebar"
+      "description": "Toggle Ekadanta sidebar"
     }
   },
   "icons": {

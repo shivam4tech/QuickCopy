@@ -36,27 +36,27 @@ export class CaptureService {
 
   async captureRegion(region: Region): Promise<CaptureResult> {
     if (!isExtensionContextValid()) {
-      throw new Error('[QuickCopy] Extension context invalidated');
+      throw new Error('[Ekadanta] Extension context invalidated');
     }
     if (this._disposed) {
-      throw new Error('[QuickCopy] CaptureService disposed');
+      throw new Error('[Ekadanta] CaptureService disposed');
     }
 
     const startTime = performance.now();
     eventBus.emit('status:update', { status: 'busy', message: 'Capturing region...' });
-    console.log(`[QuickCopy] [1/10] CTRL detected ✓`);
-    console.log(`[QuickCopy] [2/10] Selection completed ✓`, { width: region.width, height: region.height });
+    console.log(`[Ekadanta] [1/10] CTRL detected ✓`);
+    console.log(`[Ekadanta] [2/10] Selection completed ✓`, { width: region.width, height: region.height });
 
     this.validateRegion(region);
-    console.log(`[QuickCopy] [3/10] Capture requested`, { region });
+    console.log(`[Ekadanta] [3/10] Capture requested`, { region });
 
     const viewportScreenshot = await this.captureViewportScreenshot();
 
-    console.log(`[QuickCopy] [3.5/10] Cropping to region...`);
+    console.log(`[Ekadanta] [3.5/10] Cropping to region...`);
     const captured = await this.cropImage(viewportScreenshot, region);
 
     const elapsed = Math.round(performance.now() - startTime);
-    console.log(`[QuickCopy] [4/10] Image captured ✓`, {
+    console.log(`[Ekadanta] [4/10] Image captured ✓`, {
       width: captured.width,
       height: captured.height,
       executionTimeMs: elapsed,
@@ -64,7 +64,7 @@ export class CaptureService {
 
     if (captured.width < 2 || captured.height < 2) {
       eventBus.emit('capture:failed', new Error(`Captured image too small: ${captured.width}x${captured.height}`));
-      throw new Error(`[QuickCopy] Captured image too small: ${captured.width}x${captured.height}`);
+      throw new Error(`[Ekadanta] Captured image too small: ${captured.width}x${captured.height}`);
     }
 
     const result: CaptureResult = {
@@ -136,13 +136,13 @@ export class CaptureService {
   private validateRegion(region: Region): void {
     if (!region || typeof region.x !== 'number' || typeof region.y !== 'number' ||
         typeof region.width !== 'number' || typeof region.height !== 'number') {
-      throw new Error(`[QuickCopy] Invalid region: ${JSON.stringify(region)}`);
+      throw new Error(`[Ekadanta] Invalid region: ${JSON.stringify(region)}`);
     }
     if (region.width < 1 || region.height < 1) {
-      throw new Error(`[QuickCopy] Region too small: ${region.width}x${region.height}`);
+      throw new Error(`[Ekadanta] Region too small: ${region.width}x${region.height}`);
     }
     if (region.x < 0 || region.y < 0) {
-      throw new Error(`[QuickCopy] Region has negative coordinates: ${region.x},${region.y}`);
+      throw new Error(`[Ekadanta] Region has negative coordinates: ${region.x},${region.y}`);
     }
   }
 

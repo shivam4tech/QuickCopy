@@ -7,7 +7,7 @@ import { eventBus } from '@utils/eventBus';
 import { createThemeApplier } from '@utils/theme';
 import type { DiagnosticLogMessage, MessageResponse } from '@type/messages';
 
-const SIDEBAR_EXPAND_EVENT = 'quickcopy:sidebar:set-expanded';
+const SIDEBAR_EXPAND_EVENT = 'ekadanta:sidebar:set-expanded';
 
 const SIDEBAR_THEME_TOKENS = `
   --color-bg-primary: #0d0f14;
@@ -155,14 +155,14 @@ export async function mountSidebar(onClose?: () => void, options?: { persistent?
       box-sizing: border-box;
     }
 
-    #quickcopy-sidebar-root {
+    #ekadanta-sidebar-root {
       pointer-events: auto;
     }
   `;
   shadow.appendChild(resetStyle);
 
   const mountPoint = document.createElement('div');
-  mountPoint.id = 'quickcopy-sidebar-root';
+  mountPoint.id = 'ekadanta-sidebar-root';
   mountPoint.style.pointerEvents = 'auto';
   shadow.appendChild(mountPoint);
 
@@ -282,7 +282,7 @@ function logStackingContext(): void {
     openPopovers,
   };
 
-  console.log(`[QuickCopy:diag] Sidebar raised to top`, payload);
+  console.log(`[Ekadanta:diag] Sidebar raised to top`, payload);
   const msg: DiagnosticLogMessage = {
     type: 'diag:log',
     source: 'content',

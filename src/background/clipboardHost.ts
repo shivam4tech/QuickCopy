@@ -57,17 +57,17 @@ export function handleClipboardWrite(
       } else {
         await navigator.clipboard.writeText(message.text);
       }
-      console.log(`[QuickCopy:Clipboard] written in background (${message.format}, ${message.text.length} chars)`);
+      console.log(`[Ekadanta:Clipboard] written in background (${message.format}, ${message.text.length} chars)`);
       return { success: true };
     } catch (err) {
       // Offscreen documents cannot hold focus, so navigator.clipboard throws
       // "Document is not focused" here. Fall back to execCommand('copy'),
       // which only needs a selected textarea, not document focus.
       if (copyWithExecCommand(message.text)) {
-        console.log(`[QuickCopy:Clipboard] written via execCommand fallback (${message.format}, ${message.text.length} chars)`);
+        console.log(`[Ekadanta:Clipboard] written via execCommand fallback (${message.format}, ${message.text.length} chars)`);
         return { success: true };
       }
-      console.error(`[QuickCopy:Clipboard] background write FAILED`, getErrorMessage(err));
+      console.error(`[Ekadanta:Clipboard] background write FAILED`, getErrorMessage(err));
       return { success: false, error: getErrorMessage(err) };
     }
   };

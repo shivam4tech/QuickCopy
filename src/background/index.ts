@@ -24,7 +24,7 @@ import { initConsoleGate } from '@utils/logGate';
 
 initConsoleGate();
 
-console.log(`[QuickCopy:Background] Service worker starting... (build: ${__BUILD_ID__})`);
+console.log(`[Ekadanta:Background] Service worker starting... (build: ${__BUILD_ID__})`);
 
 async function isPaused(): Promise<boolean> {
   try {
@@ -54,7 +54,7 @@ async function warmUpBackgroundOcr(): Promise<void> {
   if (status === 'ready' || status === 'initializing') return;
 
   const result = await backgroundOcrManager.init(lang);
-  console.log(`[QuickCopy:Background] OCR warm-up: ${result.success ? 'ready' : `not ready (${result.reason ?? 'unknown'})`}`);
+  console.log(`[Ekadanta:Background] OCR warm-up: ${result.success ? 'ready' : `not ready (${result.reason ?? 'unknown'})`}`);
 }
 
 /**
@@ -157,13 +157,13 @@ registerCommandHandlers();
 // chrome:// page where content scripts don't inject. Each alarm event resets
 // the ~30s SW idle timer, keeping the warm OCR worker alive with no dead
 // window between ticks (0.5 min is the shortest allowed alarm period).
-const KEEPALIVE_ALARM_NAME = 'quickcopy-keepalive';
+const KEEPALIVE_ALARM_NAME = 'ekadanta-keepalive';
 const KEEPALIVE_ALARM_INTERVAL_MIN = 0.5;
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== KEEPALIVE_ALARM_NAME) return;
   void warmUpBackgroundOcr().catch((err) => {
-    console.warn(`[QuickCopy:Background] OCR warm-up (alarm) failed`, getErrorMessage(err));
+    console.warn(`[Ekadanta:Background] OCR warm-up (alarm) failed`, getErrorMessage(err));
   });
 });
 
@@ -183,7 +183,7 @@ async function initialize(): Promise<void> {
   try {
     await chrome.alarms.create(KEEPALIVE_ALARM_NAME, { periodInMinutes: KEEPALIVE_ALARM_INTERVAL_MIN });
   } catch (err) {
-    console.warn(`[QuickCopy:Background] Could not create keepalive alarm`, getErrorMessage(err));
+    console.warn(`[Ekadanta:Background] Could not create keepalive alarm`, getErrorMessage(err));
   }
 
   eventBus.emit('app:ready', undefined);
@@ -191,9 +191,9 @@ async function initialize(): Promise<void> {
 
   if (typeof Worker === 'undefined') {
     ensureOffscreenDocument().then((ok) => {
-      console.log(`[QuickCopy:Background] Offscreen OCR warm-up: ${ok ? 'ready' : 'unavailable'}`);
+      console.log(`[Ekadanta:Background] Offscreen OCR warm-up: ${ok ? 'ready' : 'unavailable'}`);
     }).catch((err) => {
-      console.error(`[QuickCopy:Background] Offscreen OCR warm-up failed`, getErrorMessage(err));
+      console.error(`[Ekadanta:Background] Offscreen OCR warm-up failed`, getErrorMessage(err));
     });
   }
 }
@@ -207,7 +207,7 @@ function handleCaptureViewport(
   sendResponse: (response: MessageResponse) => void,
 ): void {
   const windowId = sender.tab?.windowId;
-  console.log(`[QuickCopy:Background] capture:viewport from tab ${sender.tab?.id}, windowId=${windowId}`);
+  console.log(`[Ekadanta:Background] capture:viewport from tab ${sender.tab?.id}, windowId=${windowId}`);
 
   const CAPTURE_TIMEOUT_MS = 10000;
   let responded = false;
@@ -219,7 +219,7 @@ function handleCaptureViewport(
   };
 
   const timer = setTimeout(() => {
-    console.error(`[QuickCopy:Background] captureVisibleTab TIMEOUT (${CAPTURE_TIMEOUT_MS}ms)`);
+    console.error(`[Ekadanta:Background] captureVisibleTab TIMEOUT (${CAPTURE_TIMEOUT_MS}ms)`);
     safeRespond({ error: 'captureVisibleTab timed out' } as MessageResponse);
   }, CAPTURE_TIMEOUT_MS);
 
@@ -229,10 +229,10 @@ function handleCaptureViewport(
       if (responded) return;
       const err = chrome.runtime.lastError;
       if (err) {
-        console.error(`[QuickCopy:Background] captureVisibleTab FAILED`, getErrorMessage(err));
+        console.error(`[Ekadanta:Background] captureVisibleTab FAILED`, getErrorMessage(err));
         safeRespond({ error: getErrorMessage(err) } as MessageResponse);
       } else {
-        console.log(`[QuickCopy:Background] captureVisibleTab SUCCESS`, { dataUrlLength: dataUrl.length });
+        console.log(`[Ekadanta:Background] captureVisibleTab SUCCESS`, { dataUrlLength: dataUrl.length });
         safeRespond({ success: true, dataUrl } as unknown as MessageResponse);
       }
     };
@@ -244,7 +244,7 @@ function handleCaptureViewport(
     }
   } catch (ex) {
     clearTimeout(timer);
-    console.error(`[QuickCopy:Background] captureVisibleTab threw`, ex);
+    console.error(`[Ekadanta:Background] captureVisibleTab threw`, ex);
     safeRespond({ error: `captureVisibleTab threw: ${getErrorMessage(ex)}` } as MessageResponse);
   }
 }
@@ -263,7 +263,7 @@ function relayToOffscreen(
   };
 
   const timer = setTimeout(() => {
-    console.error(`[QuickCopy:Background] Offscreen relay TIMEOUT (${RELAY_TIMEOUT_MS}ms) for ${message.type}`);
+    console.error(`[Ekadanta:Background] Offscreen relay TIMEOUT (${RELAY_TIMEOUT_MS}ms) for ${message.type}`);
     safeRespond({ success: false, error: 'Offscreen relay timed out' } as MessageResponse);
   }, RELAY_TIMEOUT_MS);
 
@@ -290,7 +290,7 @@ function relayToOffscreen(
     })
     .catch((err) => {
       clearTimeout(timer);
-      console.error(`[QuickCopy:Background] Offscreen relay FAILED`, getErrorMessage(err));
+      console.error(`[Ekadanta:Background] Offscreen relay FAILED`, getErrorMessage(err));
       safeRespond({ success: false, error: `Offscreen relay failed: ${getErrorMessage(err)}` } as MessageResponse);
     });
 }
@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener((
     // idle timer, and the warm-up keeps the OCR worker resident so scans on
     // any page are instant. Both are no-ops when already warm.
     void warmUpBackgroundOcr().catch((err) => {
-      console.warn(`[QuickCopy:Background] OCR warm-up failed`, getErrorMessage(err));
+      console.warn(`[Ekadanta:Background] OCR warm-up failed`, getErrorMessage(err));
     });
     sendResponse({ success: true });
     return true;
@@ -316,7 +316,7 @@ chrome.runtime.onMessage.addListener((
   }
   if (message.type === 'ocr:init' || message.type === 'ocr:recognize' || message.type === 'ocr:terminate') {
     if (typeof Worker === 'undefined') {
-      console.log(`[QuickCopy:Background] Service worker has no Worker API — relaying OCR to offscreen document`);
+      console.log(`[Ekadanta:Background] Service worker has no Worker API — relaying OCR to offscreen document`);
       relayToOffscreen(message, sendResponse);
       return true;
     }
@@ -324,7 +324,7 @@ chrome.runtime.onMessage.addListener((
   }
   if (message.type === 'clipboard:write') {
     if (typeof Worker === 'undefined') {
-      console.log(`[QuickCopy:Background] Relaying clipboard write to offscreen document`);
+      console.log(`[Ekadanta:Background] Relaying clipboard write to offscreen document`);
       relayToOffscreen(message, sendResponse);
       return true;
     }
@@ -332,7 +332,7 @@ chrome.runtime.onMessage.addListener((
     return true;
   }
   if (message.type === 'diag:log') {
-    console.log(`[QuickCopy:Background:diag] ${message.label}`, message.payload);
+    console.log(`[Ekadanta:Background:diag] ${message.label}`, message.payload);
     sendResponse({ success: true });
     return true;
   }
@@ -346,7 +346,7 @@ chrome.runtime.onMessage.addListener((
         sendResponse(resp as MessageResponse);
       })
       .catch((err) => {
-        console.error(`[QuickCopy:Background] languages:get-data failed for ${code}`, err);
+        console.error(`[Ekadanta:Background] languages:get-data failed for ${code}`, err);
         sendResponse({ success: false, error: getErrorMessage(err) } as MessageResponse);
       });
     return true;
@@ -372,9 +372,9 @@ chrome.runtime.onMessage.addListener((
 });
 
 initialize().then(() => {
-  console.log(`[QuickCopy:Background] Service worker initialized`);
+  console.log(`[Ekadanta:Background] Service worker initialized`);
 }).catch((error) => {
-  console.error(`[QuickCopy:Background] Service worker initialization FAILED`, {
+  console.error(`[Ekadanta:Background] Service worker initialization FAILED`, {
     message: getErrorMessage(error),
     stack: getErrorStack(error),
   });

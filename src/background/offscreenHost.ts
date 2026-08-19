@@ -8,7 +8,7 @@ const getOffscreenContexts = chrome.runtime.getContexts as (
 
 export async function ensureOffscreenDocument(): Promise<boolean> {
   if (typeof chrome.offscreen === 'undefined') {
-    console.log(`[QuickCopy:Background] chrome.offscreen API unavailable`);
+    console.log(`[Ekadanta:Background] chrome.offscreen API unavailable`);
     return false;
   }
   if (!offscreenCreation) {
@@ -18,11 +18,11 @@ export async function ensureOffscreenDocument(): Promise<boolean> {
           contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
         });
         if (contexts.length > 0) {
-          console.log(`[QuickCopy:Background] offscreen document already present`);
+          console.log(`[Ekadanta:Background] offscreen document already present`);
           return true;
         }
       } catch (err) {
-        console.warn(`[QuickCopy:Background] getContexts failed, will try createDocument`, getErrorMessage(err));
+        console.warn(`[Ekadanta:Background] getContexts failed, will try createDocument`, getErrorMessage(err));
       }
       try {
         await chrome.offscreen.createDocument({
@@ -30,10 +30,10 @@ export async function ensureOffscreenDocument(): Promise<boolean> {
           reasons: [chrome.offscreen.Reason.WORKERS, chrome.offscreen.Reason.CLIPBOARD],
           justification: 'Host the Tesseract OCR worker and reliable clipboard writes (Chrome service workers cannot construct Workers or focus the clipboard).',
         });
-        console.log(`[QuickCopy:Background] offscreen document created`);
+        console.log(`[Ekadanta:Background] offscreen document created`);
         return true;
       } catch (err) {
-        console.error(`[QuickCopy:Background] offscreen createDocument FAILED`, getErrorMessage(err));
+        console.error(`[Ekadanta:Background] offscreen createDocument FAILED`, getErrorMessage(err));
         offscreenCreation = null;
         return false;
       }

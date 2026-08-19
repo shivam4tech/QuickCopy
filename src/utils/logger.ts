@@ -1,6 +1,6 @@
 import type { LogLevel } from '@type/index';
 
-const LOG_PREFIX = '[QuickCopy]';
+const LOG_PREFIX = '[Ekadanta]';
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
   info: 1,

@@ -49,7 +49,7 @@ async function seedTraineddataCache(lang: string, langPath: string): Promise<boo
   try {
     const resp = await fetch(`${langPath}${lang}.traineddata`);
     if (!resp.ok) {
-      console.warn(`[QuickCopy:Background] traineddata fetch failed (${resp.status})`);
+      console.warn(`[Ekadanta:Background] traineddata fetch failed (${resp.status})`);
       return false;
     }
     const data = new Uint8Array(await resp.arrayBuffer());
@@ -58,17 +58,17 @@ async function seedTraineddataCache(lang: string, langPath: string): Promise<boo
     try {
       const existing = await idbGet(db, key);
       if (existing instanceof Uint8Array && existing.length === data.length) {
-        console.log(`[QuickCopy:Background] traineddata already cached (${data.length} bytes)`);
+        console.log(`[Ekadanta:Background] traineddata already cached (${data.length} bytes)`);
         return true;
       }
       await idbPut(db, key, data);
-      console.log(`[QuickCopy:Background] seeded traineddata cache (${data.length} bytes, key="${key}")`);
+      console.log(`[Ekadanta:Background] seeded traineddata cache (${data.length} bytes, key="${key}")`);
       return true;
     } finally {
       db.close();
     }
   } catch (err) {
-    console.error(`[QuickCopy:Background] traineddata cache seed FAILED`, getErrorMessage(err));
+    console.error(`[Ekadanta:Background] traineddata cache seed FAILED`, getErrorMessage(err));
     return false;
   }
 }
@@ -115,10 +115,10 @@ export class BackgroundOcrManager {
 
   private async createWorker(lang: string): Promise<{ success: boolean; reason?: string }> {
     this.status = 'initializing';
-    console.log(`[QuickCopy:Background] OCR init started (build: ${__BUILD_ID__})`);
+    console.log(`[Ekadanta:Background] OCR init started (build: ${__BUILD_ID__})`);
 
     if (typeof Worker === 'undefined') {
-      console.warn(`[QuickCopy:Background] Worker constructor UNAVAILABLE in this background context — content script will fall back to local OCR`);
+      console.warn(`[Ekadanta:Background] Worker constructor UNAVAILABLE in this background context — content script will fall back to local OCR`);
       this.status = 'unavailable';
       return { success: false, reason: 'worker-unavailable' };
     }
@@ -128,30 +128,30 @@ export class BackgroundOcrManager {
       const workerPath = `${baseUrl}worker.min.js`;
       const corePath = baseUrl;
       const langPath = baseUrl;
-      console.log(`[QuickCopy:Background] Worker paths:`, { workerPath, corePath, langPath, workerBlobURL: false });
+      console.log(`[Ekadanta:Background] Worker paths:`, { workerPath, corePath, langPath, workerBlobURL: false });
 
-      console.log(`[QuickCopy:Background] Verifying tessdata assets...`);
+      console.log(`[Ekadanta:Background] Verifying tessdata assets...`);
       for (const asset of ['worker.min.js', 'eng.traineddata', 'tesseract-core-simd-lstm.wasm.js']) {
         try {
           const resp = await fetch(`${baseUrl}${asset}`, { method: 'HEAD' });
-          console.log(`[QuickCopy:Background] ${asset}: ${resp.status} ${resp.statusText}`);
+          console.log(`[Ekadanta:Background] ${asset}: ${resp.status} ${resp.statusText}`);
         } catch (fetchErr) {
-          console.error(`[QuickCopy:Background] asset fetch FAILED: ${asset}`, getErrorMessage(fetchErr));
+          console.error(`[Ekadanta:Background] asset fetch FAILED: ${asset}`, getErrorMessage(fetchErr));
         }
       }
 
       const importStart = performance.now();
-      console.log(`[QuickCopy:Background] Importing tesseract.js...`);
+      console.log(`[Ekadanta:Background] Importing tesseract.js...`);
       const Tesseract = await import('tesseract.js');
-      console.log(`[QuickCopy:Background] tesseract.js imported in ${Math.round(performance.now() - importStart)}ms`);
+      console.log(`[Ekadanta:Background] tesseract.js imported in ${Math.round(performance.now() - importStart)}ms`);
 
-      console.log(`[QuickCopy:Background] Seeding traineddata cache (worker fetch of moz-extension:// URLs is blocked, cache avoids it)...`);
+      console.log(`[Ekadanta:Background] Seeding traineddata cache (worker fetch of moz-extension:// URLs is blocked, cache avoids it)...`);
       await seedTraineddataCache('eng', baseUrl);
 
-      console.log(`[QuickCopy:Background] Creating Tesseract worker (lang: ${lang})...`);
+      console.log(`[Ekadanta:Background] Creating Tesseract worker (lang: ${lang})...`);
       const workerStart = performance.now();
       const heartbeat = setInterval(() => {
-        console.warn(`[QuickCopy:Background] Still awaiting createWorker() after ${Math.round(performance.now() - workerStart)}ms — worker promise has NOT settled`);
+        console.warn(`[Ekadanta:Background] Still awaiting createWorker() after ${Math.round(performance.now() - workerStart)}ms — worker promise has NOT settled`);
       }, 5000);
 
       let workerInstance: unknown;
@@ -164,17 +164,17 @@ export class BackgroundOcrManager {
             workerBlobURL: false,
             gzip: false,
             errorHandler: (data: unknown) => {
-              console.error(`[QuickCopy:Background] tesseract worker reported an error`, data);
+              console.error(`[Ekadanta:Background] tesseract worker reported an error`, data);
             },
             logger: (msg: { status: string; progress: number }) => {
-              console.log(`[QuickCopy:Background] tesseract: ${msg.status} (${Math.round(msg.progress * 100)}%)`);
+              console.log(`[Ekadanta:Background] tesseract: ${msg.status} (${Math.round(msg.progress * 100)}%)`);
             },
           }),
           45000,
           'background createWorker',
         );
       } catch (createErr) {
-        console.error(`[QuickCopy:Background] Tesseract.createWorker() THREW`, {
+        console.error(`[Ekadanta:Background] Tesseract.createWorker() THREW`, {
           message: getErrorMessage(createErr),
           stack: getErrorStack(createErr),
           type: typeof createErr,
@@ -191,10 +191,10 @@ export class BackgroundOcrManager {
 
       this.worker = workerInstance as unknown as TesseractWorker;
       this.status = 'ready';
-      console.log(`[QuickCopy:Background] OCR worker ready in ${Math.round(performance.now() - workerStart)}ms`);
+      console.log(`[Ekadanta:Background] OCR worker ready in ${Math.round(performance.now() - workerStart)}ms`);
       return { success: true };
     } catch (err) {
-      console.error(`[QuickCopy:Background] OCR init FAILED`, {
+      console.error(`[Ekadanta:Background] OCR init FAILED`, {
         message: getErrorMessage(err),
         stack: getErrorStack(err),
         type: typeof err,
@@ -217,7 +217,7 @@ export class BackgroundOcrManager {
         }
       }
       if (this.worker) {
-        console.log(`[QuickCopy:Background] Rebuilding worker for language change (${this.currentLanguage} → ${lang})`);
+        console.log(`[Ekadanta:Background] Rebuilding worker for language change (${this.currentLanguage} → ${lang})`);
         await this.terminate();
       }
     }
@@ -229,12 +229,12 @@ export class BackgroundOcrManager {
 
     await this.syncMode();
     const startTime = performance.now();
-    console.log(`[QuickCopy:Background] recognize() called with image of length ${imageData.length}`);
+    console.log(`[Ekadanta:Background] recognize() called with image of length ${imageData.length}`);
 
     const result = await this.recognizeWithWorker(imageData, language);
     result.duration = performance.now() - startTime;
 
-    console.log(`[QuickCopy:Background] recognize() finished`, {
+    console.log(`[Ekadanta:Background] recognize() finished`, {
       textLength: result.text.length,
       confidence: result.confidence.toFixed(1) + '%',
       blockCount: result.blocks.length,
@@ -242,7 +242,7 @@ export class BackgroundOcrManager {
     });
 
     if (result.text.length === 0) {
-      console.warn(`[QuickCopy:Background] OCR returned empty text (confidence: ${result.confidence})`);
+      console.warn(`[Ekadanta:Background] OCR returned empty text (confidence: ${result.confidence})`);
     }
 
     return result;
@@ -261,7 +261,7 @@ export class BackgroundOcrManager {
     const blocks = flattenTesseractBlocks(result.data.blocks);
 
     if (text.length === 0) {
-      console.warn(`[QuickCopy:Background] OCR returned empty text (confidence: ${confidence})`);
+      console.warn(`[Ekadanta:Background] OCR returned empty text (confidence: ${confidence})`);
     }
 
     return {
@@ -278,14 +278,14 @@ export class BackgroundOcrManager {
       try {
         await this.worker.terminate();
       } catch (err) {
-        console.error(`[QuickCopy:Background] terminate() error`, getErrorMessage(err));
+        console.error(`[Ekadanta:Background] terminate() error`, getErrorMessage(err));
       }
       this.worker = null;
     }
     this.currentLanguage = null;
     this.status = 'idle';
     this.initPromise = null;
-    console.log(`[QuickCopy:Background] OCR worker terminated`);
+    console.log(`[Ekadanta:Background] OCR worker terminated`);
   }
 }
 

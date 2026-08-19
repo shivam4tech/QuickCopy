@@ -2,7 +2,7 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): 
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`[QuickCopy] Timeout: ${label} exceeded ${ms}ms`)), ms)
+      setTimeout(() => reject(new Error(`[Ekadanta] Timeout: ${label} exceeded ${ms}ms`)), ms)
     ),
   ]);
 }
