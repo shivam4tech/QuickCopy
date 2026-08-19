@@ -1,12 +1,12 @@
 import { EXTENSION_NAME, EXTENSION_VERSION } from '@shared/constants';
-import { colors, spacing, radius, fonts, fontSizes, fontWeights, animation } from '@styles/designSystem';
+import { colors, gradients, spacing, radius, fonts, fontSizes, fontWeights, animation } from '@styles/designSystem';
 import { Switch } from '@components/ui/Switch';
 import { useSettings } from '@hooks/useSettings';
 
 const styles = {
   container: {
-    width: 280,
-    padding: spacing[4],
+    width: 320,
+    padding: spacing[2.5],
     fontFamily: fonts.sans,
     color: colors.text.primary,
     background: colors.bg.primary,
@@ -15,20 +15,32 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[3],
+    marginBottom: spacing[2.5],
   } as const,
   brand: {
     display: 'flex',
     alignItems: 'center',
     gap: spacing[2],
+    minWidth: 0,
+  } as const,
+  icon: {
+    display: 'block',
+    borderRadius: radius.sm,
+    flexShrink: 0,
   } as const,
   title: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
+    letterSpacing: '-0.01em',
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   } as const,
   version: {
     fontSize: fontSizes.xs,
     color: colors.text.muted,
+    fontFamily: fonts.mono,
+    flexShrink: 0,
   } as const,
   section: {
     marginBottom: spacing[2.5],
@@ -41,17 +53,17 @@ const styles = {
     letterSpacing: '0.05em',
     marginBottom: spacing[1.5],
   } as const,
+  card: {
+    background: colors.bg.secondary,
+    border: `1px solid ${colors.border.default}`,
+    borderRadius: radius['2xl'],
+    padding: `${spacing[2.5]} ${spacing[3]}`,
+  } as const,
   statusRow: {
     display: 'flex',
     alignItems: 'center',
     gap: spacing[2],
-    padding: `${spacing[1.5]} ${spacing[2.5]}`,
-    background: colors.glass.bg,
-    backgroundImage: colors.glass.sheen,
-    border: `1px solid ${colors.glass.border}`,
-    borderRadius: radius.lg,
-    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.base,
   } as const,
   statusDot: {
     width: 7,
@@ -60,16 +72,10 @@ const styles = {
     background: colors.accent.success,
     flexShrink: 0,
   } as const,
-  guideCard: {
-    padding: spacing[2.5],
-    background: colors.glass.bg,
-    backgroundImage: colors.glass.sheen,
-    border: `1px solid ${colors.glass.border}`,
-    borderRadius: radius.lg,
-    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
-    fontSize: fontSizes.sm,
+  guideText: {
+    fontSize: fontSizes.base,
     color: colors.text.secondary,
-    lineHeight: '1.7',
+    lineHeight: '1.6',
   } as const,
   guideSep: {
     color: colors.text.muted,
@@ -77,36 +83,40 @@ const styles = {
   } as const,
   kbd: {
     display: 'inline-block',
-    padding: '1px 5px',
+    padding: '1px 6px',
     margin: '0 1px',
     borderRadius: radius.sm,
-    background: colors.bg.tertiary,
-    border: `1px solid ${colors.border.active}`,
-    color: colors.accent.primary,
+    background: colors.accent.primary,
+    border: `1px solid ${colors.accent.primary}`,
+    color: colors.text.onAccent,
     fontWeight: fontWeights.semibold,
     fontSize: fontSizes.xs,
     fontFamily: fonts.mono,
     lineHeight: '1.5',
-    boxShadow: '0 1px 0 rgba(0,0,0,0.15)',
+    boxShadow: `0 1px 2px color-mix(in srgb, var(--color-shadow) 45%, transparent)`,
   } as const,
   row: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: `${spacing[1.5]} ${spacing[2.5]}`,
+    minHeight: 36,
+    margin: `0 -${spacing[2]}`,
+    padding: `0 ${spacing[2]}`,
     borderRadius: radius.md,
-    cursor: 'pointer',
-    fontSize: fontSizes.sm,
+    cursor: 'pointer' as const,
+    fontSize: fontSizes.base,
+    transition: `background ${animation.duration.fast} ${animation.easing.ease}`,
   } as const,
   link: {
-    color: colors.accent.primary,
+    color: colors.text.muted,
     textDecoration: 'none',
     fontSize: fontSizes.sm,
-    cursor: 'pointer',
+    cursor: 'pointer' as const,
     border: 'none',
     background: 'none',
     padding: 0,
     fontFamily: 'inherit',
+    transition: `color ${animation.duration.fast} ${animation.easing.ease}`,
   } as const,
   divider: {
     height: 1,
@@ -117,25 +127,23 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: `${spacing[1.5]} ${spacing[2.5]}`,
-    borderRadius: radius.md,
-    background: colors.bg.secondary,
+    gap: spacing[3],
   } as const,
   toggleLabel: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.base,
     fontWeight: fontWeights.medium,
+    letterSpacing: '-0.01em',
   } as const,
   toggleDesc: {
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.sm,
     color: colors.text.muted,
-    marginTop: spacing[0.5],
+    marginTop: spacing[1],
   } as const,
   footer: {
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: spacing[3],
-    fontSize: fontSizes.xs,
-    color: colors.text.muted,
   } as const,
 };
 
@@ -157,12 +165,13 @@ export function App() {
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.brand}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={colors.accent.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="8" y="2" width="8" height="4" rx="1" />
-            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-            <path d="M12 11v6" />
-            <path d="M9 14l3 3 3-3" />
-          </svg>
+          <img
+            src={chrome.runtime.getURL('icons/icon32.png')}
+            width="22"
+            height="22"
+            alt=""
+            style={styles.icon}
+          />
           <span style={styles.title}>{EXTENSION_NAME}</span>
         </div>
         <span style={styles.version}>v{EXTENSION_VERSION}</span>
@@ -170,75 +179,57 @@ export function App() {
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Status</div>
-        <div style={styles.statusRow}>
-          <span style={{ ...styles.statusDot, background: settings.enabled ? colors.accent.success : colors.text.muted }} />
-          <span>{settings.enabled ? 'Ready' : 'Paused'}</span>
-          <span style={{ flex: 1 }} />
-          <div
-            role="radiogroup"
-            aria-label="Extension power"
-            style={{
-              position: 'relative',
-              display: 'flex',
-              background: colors.bg.tertiary,
-              borderRadius: radius.full,
-              padding: 2,
-            }}
-          >
-            <span
+        <div style={{ ...styles.card, paddingTop: spacing[2], paddingBottom: spacing[2] }}>
+          <div style={styles.statusRow}>
+            <span style={{ ...styles.statusDot, background: settings.enabled ? colors.accent.success : colors.accent.error }} />
+            <span style={{ fontWeight: fontWeights.medium, letterSpacing: '-0.01em' }}>
+              {settings.enabled ? 'Ready' : 'Paused'}
+            </span>
+            <span style={{ flex: 1 }} />
+            <div
+              role="radiogroup"
+              aria-label="Extension power"
               style={{
-                position: 'absolute',
-                top: 2,
-                left: 2,
-                bottom: 2,
-                width: 'calc(50% - 2px)',
+                display: 'flex',
+                background: colors.bg.tertiary,
+                border: `1px solid ${colors.border.default}`,
                 borderRadius: radius.full,
-                background: colors.bg.secondary,
-                boxShadow: `0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 ${colors.glass.highlight}`,
-                transform: settings.enabled ? 'translateX(100%)' : 'translateX(0)',
-                transition: `transform ${animation.duration.slow} ${animation.easing.spring}`,
-                willChange: 'transform',
+                padding: 2,
+                gap: 2,
               }}
-            />
-            {[true, false].map((on) => (
-              <button
-                key={on ? 'on' : 'off'}
-                type="button"
-                role="radio"
-                aria-checked={settings.enabled === on}
-                onClick={() => updateSetting('enabled', on)}
-                style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: spacing[1],
-                  flex: 1,
-                  padding: `2px ${spacing[2]}`,
-                  borderRadius: radius.full,
-                  border: 'none',
-                  background: 'transparent',
-                  color: settings.enabled === on ? colors.text.primary : colors.text.muted,
-                  fontSize: fontSizes.xs,
-                  fontWeight: fontWeights.medium,
-                  cursor: 'pointer',
-                  transition: `color ${animation.duration.fast} ${animation.easing.ease}`,
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: settings.enabled === on ? colors.accent.success : 'transparent',
-                    border: `1px solid ${settings.enabled === on ? colors.accent.success : colors.border.default}`,
-                    flexShrink: 0,
-                    transition: `background ${animation.duration.fast} ${animation.easing.ease}, border-color ${animation.duration.fast} ${animation.easing.ease}`,
-                  }}
-                />
-                {on ? 'On' : 'Off'}
-              </button>
-            ))}
+            >
+              {[true, false].map((on) => {
+                const active = settings.enabled === on;
+                return (
+                  <button
+                    key={on ? 'on' : 'off'}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => updateSetting('enabled', on)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: spacing[1],
+                      flex: 1,
+                      padding: `3px ${spacing[3]}`,
+                      borderRadius: radius.full,
+                      border: 'none',
+                      background: active ? gradients.primary : 'color-mix(in srgb, var(--color-text-primary) 8%, transparent)',
+                      boxShadow: active ? '0 1px 2px rgba(0, 0, 0, 0.2)' : 'none',
+                      color: active ? colors.text.onAccent : colors.text.secondary,
+                      fontSize: fontSizes.xs,
+                      fontWeight: fontWeights.semibold,
+                      cursor: 'pointer',
+                      transition: `background ${animation.duration.normal} ${animation.easing.ease}, color ${animation.duration.fast} ${animation.easing.ease}, box-shadow ${animation.duration.normal} ${animation.easing.ease}`,
+                    }}
+                  >
+                    {on ? 'On' : 'Off'}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -247,28 +238,29 @@ export function App() {
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>How to use</div>
-        <div style={styles.guideCard}>
-          Hold{' '}
-          {dragKeys.map((key, i) => (
-            <span key={key}>
-              {i > 0 && <span style={styles.guideSep}>+</span>}
-              <Kbd>{key}</Kbd>
-            </span>
-          ))}
-          <span style={styles.guideSep}>+</span>
-          <Kbd>Drag</Kbd> with Left Mouse
-          <br />
-          Release — text is copied automatically
-          <br />
-          <br />
-          On a PDF: press{' '}
-          {pdfShortcut.map((key, i) => (
-            <span key={key}>
-              {i > 0 && <span style={styles.guideSep}>+</span>}
-              <Kbd>{key}</Kbd>
-            </span>
-          ))}
-          {' '}to open the capture window
+        <div style={styles.card}>
+          <div style={styles.guideText}>
+            Hold{' '}
+            {dragKeys.map((key, i) => (
+              <span key={key}>
+                {i > 0 && <span style={styles.guideSep}>+</span>}
+                <Kbd>{key}</Kbd>
+              </span>
+            ))}
+            <span style={styles.guideSep}>+</span>
+            <Kbd>Drag</Kbd> with Left Mouse
+            <br />
+            Release — text is copied automatically
+            <br />
+            On a PDF: press{' '}
+            {pdfShortcut.map((key, i) => (
+              <span key={key}>
+                {i > 0 && <span style={styles.guideSep}>+</span>}
+                <Kbd>{key}</Kbd>
+              </span>
+            ))}
+            {' '}to open the capture window
+          </div>
         </div>
       </div>
 
@@ -276,22 +268,37 @@ export function App() {
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Panel</div>
-        <div style={styles.toggleRow}>
-          <div>
-            <div style={styles.toggleLabel}>Show panel after capture</div>
-            <div style={styles.toggleDesc}>Off = silent drag-to-copy</div>
+        <div style={styles.card}>
+          <div style={styles.toggleRow}>
+            <div style={{ minWidth: 0 }}>
+              <div style={styles.toggleLabel}>Show panel after capture</div>
+              <div style={styles.toggleDesc}>Off = silent drag-to-copy</div>
+            </div>
+            <Switch
+              checked={settings.showPanel}
+              onChange={(checked) => updateSetting('showPanel', checked)}
+            />
           </div>
-          <Switch
-            checked={settings.showPanel}
-            onChange={(checked) => updateSetting('showPanel', checked)}
-          />
         </div>
       </div>
 
       <div style={styles.divider} />
 
       <div style={styles.section}>
-        <div style={styles.row} onClick={openOptions}>
+        <div
+          role="button"
+          tabIndex={0}
+          style={styles.row}
+          onClick={openOptions}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openOptions();
+            }
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = colors.bg.hover)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
           <span>Settings</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
@@ -302,8 +309,15 @@ export function App() {
       <div style={styles.divider} />
 
       <div style={styles.footer}>
-        <button type="button" style={styles.link} onClick={openAbout}>About</button>
-        <span>v{EXTENSION_VERSION}</span>
+        <button
+          type="button"
+          style={{ ...styles.link, color: colors.text.muted }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = colors.accent.primary)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+          onClick={openAbout}
+        >
+          About
+        </button>
       </div>
     </div>
   );

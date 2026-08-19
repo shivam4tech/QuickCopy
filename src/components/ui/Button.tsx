@@ -22,7 +22,7 @@ const baseStyles: Record<ButtonVariant, React.CSSProperties> = {
   secondary: {
     background: gradients.secondary,
     color: colors.text.primary,
-    border: `1px solid ${colors.glass.border}`,
+    border: `1px solid ${colors.border.default}`,
   },
   ghost: {
     background: 'transparent',
@@ -44,10 +44,10 @@ const hoverStyles: Record<ButtonVariant, React.CSSProperties> = {
   secondary: {
     background: gradients.secondaryHover,
     borderColor: colors.border.hover,
-    boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
+    boxShadow: shadows.md,
   },
   ghost: {
-    background: colors.glass.hover,
+    background: colors.bg.hover,
     color: colors.text.primary,
   },
   danger: {
@@ -102,13 +102,13 @@ export function Button({
       : `inset 0 1px 2px color-mix(in srgb, var(--color-shadow) 60%, transparent)`
     : hovered
       ? hov.boxShadow
-      : variant === 'primary'
-        ? buttonShadows.primary
-        : variant === 'secondary'
-          ? `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.sm}`
-          : variant === 'danger'
-            ? `0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px color-mix(in srgb, var(--color-accent-error) 22%, transparent)`
-            : undefined;
+: variant === 'primary'
+          ? buttonShadows.primary
+          : variant === 'secondary'
+            ? shadows.sm
+            : variant === 'danger'
+              ? `0 1px 2px rgba(0, 0, 0, 0.35)`
+              : undefined;
 
   const hoverApplied = pressed ? { ...hov, boxShadow: undefined } : hov;
 

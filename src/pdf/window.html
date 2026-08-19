@@ -18,8 +18,8 @@
         height: 100%;
       }
       body {
-        background: #0d1117;
-        color: #e6edf3;
+        background: #0a0a0c;
+        color: #f2f2f3;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         display: flex;
         flex-direction: column;
@@ -31,8 +31,8 @@
         justify-content: space-between;
         gap: 12px;
         padding: 10px 14px;
-        background: #161b22;
-        border-bottom: 1px solid #21262d;
+        background: #101012;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         flex-shrink: 0;
       }
       .brand {
@@ -42,16 +42,17 @@
         min-width: 0;
         font-size: 13px;
         font-weight: 600;
+        letter-spacing: -0.01em;
       }
       .brand svg {
         flex-shrink: 0;
       }
       .brand .sep {
-        color: #8b949e;
+        color: #7e7e88;
         font-weight: 400;
       }
       #qc-pdf-filename {
-        color: #8b949e;
+        color: #a9a9b4;
         font-weight: 400;
         white-space: nowrap;
         overflow: hidden;
@@ -68,45 +69,46 @@
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #8b949e;
+        color: #7e7e88;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
       #qc-pdf-page {
         width: 48px;
         padding: 4px 6px;
-        background: #0d1117;
-        border: 1px solid #21262d;
+        background: #151518;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 6px;
-        color: #e6edf3;
+        color: #f2f2f3;
         font-size: 12px;
         text-align: center;
         outline: none;
         font-variant-numeric: tabular-nums;
       }
       #qc-pdf-page:focus {
-        border-color: #58a6ff;
+        border-color: #f4c84e;
+        box-shadow: 0 0 0 3px rgba(244, 200, 78, 0.4);
       }
       #qc-pdf-page:disabled {
         opacity: 0.5;
       }
       #qc-pdf-status {
         font-size: 12px;
-        color: #8b949e;
+        color: #a9a9b4;
       }
       #qc-pdf-status.busy {
-        color: #58a6ff;
+        color: #f4c84e;
       }
       #qc-pdf-status.error {
-        color: #f85149;
+        color: #f2554d;
       }
       #qc-pdf-status.success {
-        color: #3fb950;
+        color: #3ecf7a;
       }
       #qc-pdf-close {
         background: transparent;
-        border: 1px solid #21262d;
-        color: #8b949e;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #a9a9b4;
         width: 26px;
         height: 26px;
         border-radius: 6px;
@@ -115,20 +117,20 @@
         cursor: pointer;
       }
       #qc-pdf-close:hover {
-        background: #21262d;
-        color: #e6edf3;
+        background: #18181c;
+        color: #f2f2f3;
       }
       #qc-pdf-pages {
         flex: 1;
         overflow: auto;
         padding: 24px 16px 48px;
-        background: #0d1117;
+        background: #0a0a0c;
         scrollbar-gutter: stable;
       }
       .qc-page {
         background: #ffffff;
         margin: 0 auto 24px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         border-radius: 2px;
       }
       #qc-pdf-error {
@@ -136,13 +138,13 @@
         max-width: 560px;
         margin: 64px auto 0;
         padding: 20px 24px;
-        background: #161b22;
-        border: 1px solid #21262d;
+        background: #101012;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
         font-size: 13px;
         line-height: 1.6;
         white-space: pre-line;
-        color: #c9d1d9;
+        color: #a9a9b4;
         text-align: center;
       }
       #qc-pdf-error.visible {
@@ -150,7 +152,7 @@
       }
       #qc-pdf-error .title {
         font-weight: 600;
-        color: #f85149;
+        color: #f2554d;
         margin-bottom: 6px;
       }
     </style>
@@ -158,7 +160,7 @@
   <body>
     <header id="qc-pdf-header">
       <div class="brand">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f4c84e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="8" y="2" width="8" height="4" rx="1" />
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
           <path d="M12 11v6" />

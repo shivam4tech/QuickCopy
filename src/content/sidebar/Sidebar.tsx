@@ -45,13 +45,14 @@ const statusColors: Record<StatusVariant, string> = {
   info: colors.accent.info,
 };
 
-const Logo = ({ size = 18, color = colors.accent.primary }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="8" y="2" width="8" height="4" rx="1" />
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-    <path d="M12 11v6" />
-    <path d="M9 14l3 3 3-3" />
-  </svg>
+const Logo = ({ size = 18 }: { size?: number }) => (
+  <img
+    src={chrome.runtime.getURL('icons/icon32.png')}
+    width={size}
+    height={size}
+    alt=""
+    style={{ display: 'block', borderRadius: 4 }}
+  />
 );
 
 export function Sidebar({ onClose, persistent = false }: SidebarProps) {
@@ -136,7 +137,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
 
     const unsubOcrFailed = eventBus.on('ocr:failed', () => {
       setBusy(false);
-      setStatus({ label: 'OCR failed', variant: 'error' });
+      setStatus({ label: 'Error', variant: 'error' });
     });
 
     const unsubClipOk = eventBus.on('clipboard:written', (success: boolean) => {
@@ -172,7 +173,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
 
     const unsubStatus = eventBus.on('status:update', (update: { status: string; message?: string }) => {
       setStatus(prev => ({
-        label: update.message ?? prev.label,
+        label: update.status === 'error' ? 'Error' : (update.message ?? prev.label),
         variant: update.status === 'error' ? 'error' : update.status === 'ready' ? 'success' : 'info',
       }));
     });
@@ -239,11 +240,12 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
   const confidenceLabel = ocrData
     ? ocrData.confidence >= 90 ? 'High' : ocrData.confidence >= 70 ? 'Medium' : 'Low'
     : '';
-  const confidenceColor = ocrData
-    ? ocrData.confidence >= 90 ? colors.accent.success : ocrData.confidence >= 70 ? colors.accent.warning : colors.accent.error
-    : colors.text.muted;
+  const confidenceVariant: StatusVariant = ocrData
+    ? ocrData.confidence >= 90 ? 'success' : ocrData.confidence >= 70 ? 'warning' : 'error'
+    : 'default';
+  const confidenceColor = ocrData ? statusColors[confidenceVariant] : colors.text.muted;
 
-  const boxShadow = `0 0 0 1px ${colors.glass.rim}, inset 0 1px 0 ${colors.glass.highlight}, ${expanded ? shadows.xl : shadows.lg}`;
+  const boxShadow = `0 0 0 1px ${colors.border.muted}, ${expanded ? shadows.xl : shadows.lg}`;
 
   return (
     <div
@@ -274,12 +276,9 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
             maxHeight: editing ? editHeightRef.current : 'min(36vh, 294px)',
             display: 'flex',
             flexDirection: 'column',
-            background: colors.glass.bg,
-            backgroundImage: colors.glass.sheen,
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: `1px solid ${colors.glass.border}`,
-            borderRadius: '18px',
+            background: colors.bg.secondary,
+            border: `1px solid ${colors.border.default}`,
+            borderRadius: radius['2xl'],
             boxShadow: boxShadow,
             overflow: 'hidden',
             transformOrigin: 'top right',
@@ -314,37 +313,49 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
               justifyContent: 'space-between',
               gap: spacing[2],
               padding: `${spacing[2.5]} ${spacing[3]}`,
-              borderBottom: `1px solid ${colors.glass.border}`,
+              borderBottom: `1px solid ${colors.border.default}`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], minWidth: 0 }}>
               <Logo size={18} />
-              <span style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
                 Ekadanta
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing[1] }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing[1.5] }}>
               <span
                 style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: statusColors[status.variant],
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: fontSizes.xs,
-                  color: colors.text.secondary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: 100,
+                  maxWidth: 120,
+                  flexShrink: 1,
                 }}
               >
-                {status.label}
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: statusColors[status.variant],
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: fontSizes.xs,
+                    fontFamily: fonts.mono,
+                    color: status.variant === 'default' ? colors.text.secondary : statusColors[status.variant],
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {status.label}
+                </span>
               </span>
               <IconButton onClick={() => handleExpand(false)} title="Minimize">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -374,10 +385,10 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
             {ocrData ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: confidenceColor }}>
+                  <span style={{ fontSize: fontSizes.xs, fontFamily: fonts.mono, fontWeight: fontWeights.medium, color: confidenceColor }}>
                     {confidenceLabel} · {ocrData.confidence.toFixed(0)}%
                   </span>
-                  <span style={{ fontSize: fontSizes.xs, color: colors.text.muted }}>
+                  <span style={{ fontSize: fontSizes.xs, fontFamily: fonts.mono, color: colors.text.muted }}>
                     {ocrData.text.length} chars{ocrData.duration ? ` · ${(ocrData.duration / 1000).toFixed(1)}s` : ''}
                     {ocrData.engine ? ` · ${engineLabel(ocrData.engine)}` : ''}
                   </span>
@@ -388,6 +399,8 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     onKeyDown={handleEditKeyDown}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = colors.border.active)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = colors.border.default)}
                     autoFocus
                     spellCheck={false}
                     style={{
@@ -396,8 +409,8 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
                       flex: 1,
                       background: colors.bg.tertiary,
                       color: colors.text.primary,
-                      border: `1px solid ${colors.glass.border}`,
-                      borderRadius: '2px',
+                      border: `1px solid ${colors.border.default}`,
+                      borderRadius: radius.md,
                       padding: spacing[2.5],
                       fontSize: fontSizes.base,
                       fontFamily: fonts.mono,
@@ -412,6 +425,8 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
                   <div
                     onClick={startEditing}
                     title="Click to edit"
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = colors.border.hover)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = colors.border.default)}
                     style={{
                       fontSize: fontSizes.base,
                       color: colors.text.secondary,
@@ -420,12 +435,12 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
                       wordBreak: 'break-word',
                       cursor: 'pointer',
                       padding: spacing[2],
-                      borderRadius: '2px',
+                      borderRadius: radius.md,
                       background: colors.bg.tertiary,
                       maxHeight: '18vh',
                       overflowY: 'auto',
                       transition: `border-color ${animation.duration.fast} ${animation.easing.ease}`,
-                      border: `1px solid ${colors.glass.border}`,
+                      border: `1px solid ${colors.border.default}`,
                     }}
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}
@@ -462,7 +477,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
           <div
             style={{
               padding: `${spacing[2.5]} ${spacing[3]}`,
-              borderTop: `1px solid ${colors.glass.border}`,
+              borderTop: `1px solid ${colors.border.default}`,
               display: 'flex',
               gap: spacing[2],
             }}
@@ -500,11 +515,9 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
             alignItems: 'center',
             gap: 5,
             padding: 3,
-            background: colors.bg.tertiary,
-            backdropFilter: 'blur(16px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+            background: colors.bg.secondary,
             borderRadius: 999,
-            boxShadow: `inset 0 1px 0 ${colors.glass.highlight}, ${shadows.md}`,
+            boxShadow: `0 0 0 1px ${colors.border.default}, ${shadows.md}`,
             cursor: 'pointer',
             zIndex: 2147483647,
             animation: `qc-fade-in 240ms ${animation.easing.easeOut}`,
@@ -521,8 +534,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
               width: 18,
               height: 18,
               borderRadius: 999,
-              background: colors.bg.secondary,
-              boxShadow: `0 1px 3px rgba(0, 0, 0, 0.25), inset 0 1px 0 ${colors.glass.highlight}`,
+              background: colors.bg.tertiary,
               flexShrink: 0,
             }}
           >
@@ -564,7 +576,7 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
         cursor: 'pointer',
         transition: `background ${animation.duration.fast} ${animation.easing.ease}`,
       }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.glass.hover; }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.hover; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
     >
       {children}

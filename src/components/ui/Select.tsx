@@ -143,8 +143,8 @@ export function Select({ value, onChange, options, label, disabled = false, sear
           textAlign: 'left',
           transition: `border-color ${animation.duration.fast} ${animation.easing.ease}, box-shadow ${animation.duration.fast} ${animation.easing.ease}, background ${animation.duration.fast} ${animation.easing.ease}`,
           boxShadow: focused
-            ? `0 0 0 3px ${colors.focusRing}, inset 0 1px 0 ${colors.glass.highlight}`
-            : `inset 0 1px 0 ${colors.glass.highlight}`,
+            ? `0 0 0 3px ${colors.focusRing}`
+            : undefined,
         }}
       >
         <span

@@ -44,7 +44,6 @@ export function Badge({ variant = 'default', children }: BadgeProps) {
         fontWeight: fontWeights.medium,
         fontFamily: fonts.sans,
         lineHeight: 1,
-        boxShadow: `inset 0 1px 0 ${colors.glass.highlight}`,
         ...variantStyles[variant],
       }}
     >

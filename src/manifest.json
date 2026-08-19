@@ -69,7 +69,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "tessdata/*"],
+      "resources": ["assets/*", "tessdata/*", "icons/*"],
       "matches": ["<all_urls>"]
     }
   ]

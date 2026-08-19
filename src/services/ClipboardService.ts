@@ -43,7 +43,7 @@ export class ClipboardService {
       console.log(`[Ekadanta] [9/10] Clipboard copied ✓ (${elapsed}ms)`);
 
       eventBus.emit('clipboard:written', true);
-      eventBus.emit('status:update', { status: 'ready', message: 'Copied to clipboard' });
+      eventBus.emit('status:update', { status: 'ready', message: 'Copied' });
       logger.info('Copied to clipboard', { chars: copyText.length });
       return true;
     } catch (error) {

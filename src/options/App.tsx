@@ -26,6 +26,7 @@ const styles = {
   title: {
     fontSize: fontSizes['3xl'],
     fontWeight: fontWeights.bold,
+    letterSpacing: '-0.01em',
     marginBottom: spacing[2],
   } as const,
   subtitle: {
@@ -38,6 +39,7 @@ const styles = {
   sectionTitle: {
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.semibold,
+    letterSpacing: '-0.01em',
     marginBottom: spacing[1],
   } as const,
   sectionDesc: {

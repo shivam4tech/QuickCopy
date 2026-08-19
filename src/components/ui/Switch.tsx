@@ -1,5 +1,5 @@
 import { useId, useEffect, useRef, useState } from 'react';
-import { colors, gradients, spacing, radius, fonts, fontSizes, animation } from '@styles/designSystem';
+import { colors, spacing, radius, fonts, fontSizes, animation } from '@styles/designSystem';
 
 interface SwitchProps {
   checked: boolean;
@@ -84,12 +84,10 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
           width: TRACK_WIDTH,
           height: TRACK_HEIGHT,
           borderRadius: radius.full,
-          background: checked ? gradients.primary : `color-mix(in srgb, var(--color-text-primary) 7%, transparent)`,
+          background: checked ? colors.accent.primary : `color-mix(in srgb, var(--color-text-secondary) 22%, transparent)`,
           border: `1px solid ${checked ? 'transparent' : colors.border.default}`,
           transition: `background ${animation.duration.normal} ${animation.easing.ease}, border-color ${animation.duration.normal} ${animation.easing.ease}, box-shadow ${animation.duration.normal} ${animation.easing.ease}`,
-          boxShadow: checked
-            ? `inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 8px color-mix(in srgb, var(--color-accent-primary) 25%, transparent)`
-            : `inset 0 1px 0 rgba(255, 255, 255, 0.12)`,
+          boxShadow: undefined,
           outline: 'none',
           flexShrink: 0,
         }}
@@ -101,8 +99,8 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
             width: KNOB_SIZE,
             height: KNOB_SIZE,
             borderRadius: radius.full,
-            background: 'linear-gradient(180deg, #ffffff 0%, #f2f4f7 100%)',
-            boxShadow: `0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)`,
+            background: '#ffffff',
+            boxShadow: `0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.1)`,
             willChange: 'transform',
             transform: `translateX(${checked ? ON_X : OFF_X}px) scaleX(1)`,
           }}

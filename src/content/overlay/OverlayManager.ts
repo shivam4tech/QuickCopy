@@ -345,11 +345,11 @@ export class OverlayManager {
 
     ctx.clearRect(region.x, drawY, region.width, region.height);
 
-    ctx.strokeStyle = '#58a6ff';
+    ctx.strokeStyle = '#f4c84e';
     ctx.lineWidth = 2;
     ctx.strokeRect(region.x, drawY, region.width, region.height);
 
-    ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
+    ctx.fillStyle = 'rgba(244, 200, 78, 0.08)';
     ctx.fillRect(region.x, drawY, region.width, region.height);
   }
 }
