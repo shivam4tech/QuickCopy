@@ -1,5 +1,5 @@
 export const EXTENSION_NAME = 'QuickCopy';
-export const EXTENSION_VERSION = '1.5.0';
+export const EXTENSION_VERSION = '1.5.1';
 
 export const STORAGE_KEYS = {
   SETTINGS: 'quickcopy:settings',
