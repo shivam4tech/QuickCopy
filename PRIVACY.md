@@ -22,7 +22,6 @@ QuickCopy collects **no data**:
 | `clipboardWrite` | Copy OCR results to your clipboard. |
 | `activeTab` / `tabs` | Capture the visible region of the current tab and detect PDF tabs to open the built-in PDF viewer. |
 | `storage` | Save your settings (drag modifier, dark mode, OCR language) and cached language data locally. |
-| `contextMenus` | "Copy with QuickCopy" right-click menu. |
 | `commands` | Keyboard shortcuts (`Alt+Shift+Q` capture, `Alt+Shift+S` sidebar). |
 | `offscreen` | Run OCR and clipboard writes from Chrome's offscreen document in browser contexts that restrict extension workers. |
 | `alarms` | Periodic OCR worker housekeeping. |

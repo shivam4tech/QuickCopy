@@ -1,13 +1,13 @@
-# QuickCopy — Chrome Web Store Submission Kit (v1.5.1)
+# QuickCopy — Chrome Web Store Submission Kit (v1.5.2)
 
 Everything you need to fill in the Chrome Web Store developer dashboard for
-**QuickCopy 1.5.1**.
+**QuickCopy 1.5.2**.
 
 ## Package
 
 | Item | File | Notes |
 | --- | --- | --- |
-| Upload package | `QuickCopy-chrome-1.5.1.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
+| Upload package | `QuickCopy-chrome-1.5.2.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
 | Store icon | `dist/icons/icon128.png` | 128×128 required. |
 | Privacy policy | `PRIVACY.md` | Push to the repo and host at a public URL (see below). |
 
@@ -123,7 +123,7 @@ shot; keep UI crisp (1x scale, no browser zoom); PNG or JPG ≤ 2 MB each.
 
 ## Publishing flow
 
-1. **Package** → upload `QuickCopy-chrome-1.5.1.zip` (keep "Default" as the
+1. **Package** → upload `QuickCopy-chrome-1.5.2.zip` (keep "Default" as the
    only package; `_locales` not needed).
 2. **Privacy** → paste the privacy policy URL; answer questionnaire (No to all).
 3. **Distribution** → public; add a submitter note. Site access: choose

@@ -87,7 +87,6 @@ src/
 │   ├── messaging.ts                      # chrome.runtime messaging wrapper
 │   ├── tabs.ts                           # chrome.tabs wrapper
 │   ├── commands.ts                       # chrome.commands wrapper
-│   ├── contextMenus.ts                   # chrome.contextMenus wrapper
 │   └── index.ts                          # Barrel export
 ├── types/
 │   ├── index.ts                          # Core domain types (OcrResult, OcrEngineInfo, Region, etc.)

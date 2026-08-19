@@ -57,7 +57,7 @@ function buildForFirefox(): void {
   // Remove permissions that Firefox doesn't support
   if (manifest.permissions) {
     manifest.permissions = manifest.permissions.filter(
-      (p: string) => p !== 'commands' && p !== 'contextMenus' && p !== 'offscreen',
+      (p: string) => p !== 'commands' && p !== 'offscreen',
     );
   }
 

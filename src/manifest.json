@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QuickCopy — Copy text you can't select",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
   "author": "helloquickcopy@gmail.com",
   "homepage_url": "https://github.com/shivam4tech/QuickCopy",
@@ -10,7 +10,6 @@
     "storage",
     "activeTab",
     "tabs",
-    "contextMenus",
     "commands",
     "clipboardWrite",
     "offscreen",

@@ -4,7 +4,7 @@
 
 QuickCopy is a Manifest V3 browser extension that uses optical character recognition (Tesseract.js) to extract text from any visible region of a web page — videos, images, PDFs, and regular pages — then copies it straight to your clipboard.
 
-**v1.5.1** — stable and ready for everyday use on Chrome and Firefox. Ships a dedicated PDF window with drag-to-copy, a zoom-safe capture overlay, and dual-language recognition (English + one additional language).
+**v1.5.2** — stable and ready for everyday use on Chrome and Firefox. Ships a dedicated PDF window with drag-to-copy, a zoom-safe capture overlay, and dual-language recognition (English + one additional language).
 
 > **Privacy first**: QuickCopy does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/QuickCopy) goes a long way. ⭐
 

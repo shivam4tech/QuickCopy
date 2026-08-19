@@ -287,7 +287,6 @@ Every async operation has a timeout so the pipeline can never hang:
 - **messaging.ts** — `chrome.runtime` messaging wrapper
 - **tabs.ts** — `chrome.tabs` wrapper
 - **commands.ts** — `chrome.commands` wrapper
-- **contextMenus.ts** — `chrome.contextMenus` wrapper
 
 ### Utilities (`src/utils/`)
 - **encoding.ts** — `arrayBufferToBase64` / `base64ToUint8Array` for traineddata transport
