@@ -9,6 +9,13 @@ import { clipboardService } from '@services/ClipboardService';
 
 interface SidebarProps {
   onClose: () => void;
+  /**
+   * Keeps the panel mounted: disables the auto-dismiss timer (used by the PDF
+   * capture window, where the panel is a persistent results tray and the
+   * auto-close/re-mount cycle would visibly "double-load" the panel on the
+   * next drag).
+   */
+  persistent?: boolean;
 }
 
 interface OcrDisplayData {
@@ -16,6 +23,7 @@ interface OcrDisplayData {
   confidence: number;
   duration: number;
   engine?: OcrResult['engine'];
+  fromPdf?: boolean;
 }
 
 const SIDEBAR_EXPAND_EVENT = 'quickcopy:sidebar:set-expanded';
@@ -46,7 +54,7 @@ const Logo = ({ size = 18, color = colors.accent.primary }: { size?: number; col
   </svg>
 );
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ onClose, persistent = false }: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
   const [closing, setClosing] = useState(false);
   const [ocrData, setOcrData] = useState<OcrDisplayData | null>(null);
@@ -114,6 +122,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         confidence: result.confidence,
         duration: result.duration,
         engine: result.engine,
+        fromPdf: result.fromPdf,
       });
       setEditText(result.text);
       setEditing(false);
@@ -134,6 +143,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       if (success) {
         setStatus({ label: 'Copied!', variant: 'success' });
         clearDismissTimerRef();
+        if (persistent) return;
         void chrome.storage.local
           .get({ [STORAGE_KEYS.SETTINGS]: defaultSettings })
           .then((res) => {
@@ -420,6 +430,22 @@ export function Sidebar({ onClose }: SidebarProps) {
                   >
                     {ocrData.text || <span style={{ color: colors.text.muted }}>(empty result)</span>}
                   </div>
+                )}
+
+                {ocrData.fromPdf && (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: fontSizes.xs,
+                      color: colors.accent.info,
+                      background: colors.accentSoft.info,
+                      borderRadius: radius.sm,
+                      padding: `${spacing[1.5]} ${spacing[2]}`,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    PDF capture accuracy can vary — always verify the text against the document.
+                  </span>
                 )}
               </>
             ) : (

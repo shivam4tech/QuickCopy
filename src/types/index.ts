@@ -40,6 +40,8 @@ export interface OcrResult {
   duration: number;
   /** routing/engine metadata attached by OCRManager (optional, debug) */
   engine?: OcrEngineInfo;
+  /** set when the result came from the PDF capture window (drives the accuracy note in the panel) */
+  fromPdf?: boolean;
 }
 
 export interface OcrEngineInfo {

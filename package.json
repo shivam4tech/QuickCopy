@@ -1,6 +1,6 @@
 {
   "name": "quickcopy",
-  "version": "1.2.0",
+  "version": "1.5.1",
   "private": true,
   "type": "module",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",

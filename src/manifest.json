@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "QuickCopy",
-  "version": "1.2.0",
+  "name": "QuickCopy — Copy text you can't select",
+  "version": "1.5.1",
   "description": "Copy text from videos, images, PDFs and any visible browser content using OCR.",
   "author": "helloquickcopy@gmail.com",
   "homepage_url": "https://github.com/shivam4tech/QuickCopy",
-  "minimum_chrome_version": "102",
+  "minimum_chrome_version": "109",
   "permissions": [
     "storage",
     "activeTab",
@@ -13,7 +13,8 @@
     "contextMenus",
     "commands",
     "clipboardWrite",
-    "offscreen"
+    "offscreen",
+    "alarms"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https: http: https://github.com https://raw.githubusercontent.com"

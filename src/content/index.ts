@@ -74,14 +74,27 @@ async function syncSecondaryLanguage(code: string | null): Promise<void> {
     return;
   }
 
-  const resp = await browserMessaging.sendMessage<LanguagesGetDataResponse>({
-    type: 'languages:get-data',
-    code,
-    source: 'content',
-    target: 'background',
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-  }).catch(() => undefined);
+  // Pull the traineddata from the extension store into the page cache. A
+  // single attempt can fail transiently (cold service worker, restore races),
+  // and there is no later settings change to re-trigger it — a restart was
+  // the only recovery. Retry a few times so the language works right away.
+  let resp: LanguagesGetDataResponse | undefined;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    resp = await browserMessaging.sendMessage<LanguagesGetDataResponse>({
+      type: 'languages:get-data',
+      code,
+      source: 'content',
+      target: 'background',
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }).catch(() => undefined);
+
+    if (resp?.success && resp.dataBase64) break;
+    if (attempt < 3) {
+      console.warn(`[Language] get-data failed for ${code} (attempt ${attempt}/3) — retrying…`);
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    }
+  }
 
   if (resp?.success && resp.dataBase64) {
     const data = base64ToUint8Array(resp.dataBase64);
@@ -394,6 +407,62 @@ const cleanupMessaging = browserMessaging.onMessage(async (message) => {
   }
 });
 cleanupFns.push(cleanupMessaging);
+
+// Keep the background service worker (and its warm OCR worker) alive across
+// tab switches. Chrome kills the SW after ~30s idle, which would otherwise
+// cold-start the OCR worker on every newly opened page. A 20s heartbeat (well
+// under the idle limit) keeps it resident, so switching tabs and scanning
+// stays instantaneous.
+//
+// The heartbeat ONLY runs while this tab is visible: hidden tabs have their
+// timers throttled by Chrome (down to ~1/min), so relying on them would let
+// the SW idle out whenever the user works in another tab. The visible tab's
+// timer is never throttled, so the active tab alone keeps the SW resident no
+// matter how many tabs are open. Chrome's 30s SW idle limit is reset by any
+// incoming message, and 20s < 30s guarantees the SW never sleeps while at
+// least one tab is on screen.
+const KEEPALIVE_INTERVAL_MS = 20000;
+let keepaliveTimer: number | null = null;
+
+const startKeepalive = (): void => {
+  if (keepaliveTimer != null || disposed) return;
+  const beat = (): void => {
+    if (disposed) return;
+    browserMessaging.sendMessage({
+      type: 'keepalive',
+      source: 'content',
+      target: 'background',
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }).catch(() => undefined);
+  };
+  beat();
+  keepaliveTimer = window.setInterval(beat, KEEPALIVE_INTERVAL_MS);
+};
+
+const stopKeepalive = (): void => {
+  if (keepaliveTimer != null) {
+    window.clearInterval(keepaliveTimer);
+    keepaliveTimer = null;
+  }
+};
+
+const handleVisibilityChange = (): void => {
+  if (document.visibilityState === 'visible') {
+    startKeepalive();
+  } else {
+    stopKeepalive();
+  }
+};
+
+if (document.visibilityState === 'visible') {
+  startKeepalive();
+}
+document.addEventListener('visibilitychange', handleVisibilityChange);
+cleanupFns.push(() => {
+  stopKeepalive();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+});
 
 console.log(`[QuickCopy] Content script loaded (build: ${__BUILD_ID__})`);
 logger.info('Content script loaded');

@@ -15,6 +15,7 @@ export class OverlayManager {
   private currentY = 0;
   private topOffset = 0;
   private animationId: number | null = null;
+  private lastDpr = 1;
   private onComplete: ((region: Region) => void) | null = null;
   private onCancel: (() => void) | null = null;
   private handleKeyDownBound: (e: KeyboardEvent) => void;
@@ -147,8 +148,6 @@ export class OverlayManager {
       position: fixed;
       top: ${this.topOffset}px;
       left: 0;
-      width: 100%;
-      height: calc(100% - ${this.topOffset}px);
       z-index: ${OVERLAY_Z_INDEX};
       display: none;
       cursor: crosshair;
@@ -163,10 +162,9 @@ export class OverlayManager {
    * In element fullscreen (YouTube player, etc.) the fullscreen element is
    * promoted to the browser's top layer and becomes the containing block for
    * its fixed-position descendants, so the canvas must live INSIDE that
-   * element to stay on top and aligned with clientX/clientY coordinates.
-   * Hosting it in the fullscreen element (whose box equals the screen) keeps
-   * the drag box tracking the cursor exactly — same trick as the PDF toolbar
-   * offset fix, but for the whole viewport.
+   * element to stay on top and aligned with clientX/clientY coordinates —
+   * hosting it in the fullscreen element (whose box equals the screen) keeps
+   * the drag box tracking the cursor exactly. Falls back to the document root.
    */
   private raiseToTop(): void {
     if (!this.canvas) return;
@@ -174,11 +172,21 @@ export class OverlayManager {
     host.appendChild(this.canvas);
   }
 
+  /**
+   * Size the canvas to the viewport. CSS size is set in explicit pixels (not
+   * percentages) and the backing store tracks devicePixelRatio, which browser
+   * zoom mutates while window.innerWidth does not — so the overlay re-scales
+   * with the page zoom and the drag box stays glued to the content.
+   */
   private resizeCanvas(): void {
     if (!this.canvas || !this.ctx) return;
     const { width, height } = getCaptureViewportSize();
-    this.canvas.width = width;
-    this.canvas.height = Math.max(0, height - this.topOffset);
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${Math.max(0, height - this.topOffset)}px`;
+    this.canvas.width = Math.round(width * dpr);
+    this.canvas.height = Math.round(Math.max(0, height - this.topOffset) * dpr);
+    this.lastDpr = dpr;
   }
 
   private handleResize(): void {
@@ -189,7 +197,7 @@ export class OverlayManager {
     if (this.state === 'idle') return;
     // Re-parent into (or out of) the fullscreen element and re-measure the
     // viewport — clientY is relative to the screen in fullscreen, so the box
-    // would drift upward if we kept the window-sized canvas.
+    // would drift if we kept the window-sized canvas.
     this.raiseToTop();
     this.resizeCanvas();
   }
@@ -303,8 +311,18 @@ export class OverlayManager {
   private render(): void {
     const c = this.canvas!;
     const ctx = this.ctx!;
-    const w = c.width;
-    const h = c.height;
+    const dpr = window.devicePixelRatio || 1;
+    // Browser zoom changes devicePixelRatio without always firing window
+    // resize — re-measure here (render runs every frame) so the backing store
+    // tracks the zoom and the drag box never drifts from the content.
+    if (dpr !== this.lastDpr) {
+      this.resizeCanvas();
+      this.lastDpr = dpr;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const w = c.width / dpr;
+    const h = c.height / dpr;
 
     ctx.clearRect(0, 0, w, h);
 
@@ -316,20 +334,22 @@ export class OverlayManager {
 
     const region = this.normalizeRegion();
 
-    // The canvas is offset below the header (topOffset), but the region is in
-    // client coordinates — translate when drawing so the box tracks the cursor.
-    const boxY = region.y - this.topOffset;
+    // The canvas top edge sits topOffset px below the viewport top (PDF
+    // window: below its toolbar), but region coordinates are viewport-relative
+    // (clientX/clientY). Without shifting the drawn box up by topOffset it
+    // appears shifted downwards by exactly the toolbar height.
+    const drawY = region.y - this.topOffset;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(0, 0, w, h);
 
-    ctx.clearRect(region.x, boxY, region.width, region.height);
+    ctx.clearRect(region.x, drawY, region.width, region.height);
 
     ctx.strokeStyle = '#58a6ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(region.x, boxY, region.width, region.height);
+    ctx.strokeRect(region.x, drawY, region.width, region.height);
 
     ctx.fillStyle = 'rgba(88, 166, 255, 0.08)';
-    ctx.fillRect(region.x, boxY, region.width, region.height);
+    ctx.fillRect(region.x, drawY, region.width, region.height);
   }
 }
