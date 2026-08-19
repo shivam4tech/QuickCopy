@@ -74,7 +74,7 @@ Notes:
 
 ## Languages
 
-Ekadanta always reads English. You can optionally add **one more language**:
+Ekadanta always reads English and supports **123 languages in total** — pick any one of the 122 additional languages to pair with it:
 
 - Open the options page → **Downloaded Languages** → pick a language from the **Additional Language** dropdown in **Text Recognition**.
 - If the language isn't downloaded yet, Ekadanta shows its size and downloads it (with progress), then activates it automatically.

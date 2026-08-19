@@ -65,7 +65,7 @@ left mouse button. **Alt+Shift+S** toggles the sidebar with your capture history
 
 ## Languages
 
-English always works out of the box. Add one more language in the options page
+English always works out of the box. Add one more language — Ekadanta supports 123 languages in total (English + 122 more) — in the options page
 (settings download the language model from the project's public GitHub
 repository, cached locally) — swap or switch languages anytime without
 restarting the browser.

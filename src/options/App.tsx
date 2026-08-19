@@ -435,7 +435,7 @@ export function App() {
                   <Tooltip text="Reading takes a little longer when an additional language is active." />
                 </div>
                 <div style={styles.settingDesc}>
-                  Ekadanta always reads English. You can optionally add one more language.
+                  Ekadanta always reads English and supports 123 languages in total — add any one of the other 122.
                 </div>
               </div>
               <Select
