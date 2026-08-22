@@ -17,7 +17,7 @@ Pluk is a Manifest V3 browser extension that uses optical character recognition 
 - **Silent mode**: disable the panel and capture/copy entirely in the background (toggle in the options page).
 - **Keyboard shortcuts**: `Alt+Shift+Q` to capture a region and `Alt+Shift+S` to toggle the sidebar — identical in both Chrome and Firefox.
 - **Smart recognition**: Automatic mode analyzes each capture and routes it to the best engine — Tesseract for text, a code-optimized engine (PP-OCRv5) for code — with quality-gated retry. Text-only mode always uses Tesseract.
-- **Themes**: Dark, Light, and System — a liquid-glass design with smooth, hardware-friendly transitions across the settings page, popup, and capture panel.
+- **Themes**: Dark, Light, and System — smooth, hardware-friendly transitions across the settings page, popup, and capture panel.
 - **Two languages**: English is always available; download one additional language (German, Hindi, French, and 50+ more) from within the options page.
 - **Smart clipboard**: copies recognized text through a background/offscreen clipboard host, with local fallback.
 - **Robust OCR worker**: runs Tesseract.js locally in the page when possible (local-first), falling back to the extension background/offscreen document automatically.
@@ -165,11 +165,11 @@ src/
 
 ## Architecture
 
-See [architecture.md](./architecture.md) for the detailed architecture, [folder-structure.md](./folder-structure.md) for a complete file reference, [design.md](./design.md) for the design system (themes, liquid glass, motion), and [current-state-review.md](./current-state-review.md) for the technical review.
+See [architecture.md](./architecture.md) for the detailed architecture, [folder-structure.md](./folder-structure.md) for a complete file reference, [design.md](./design.md) for the design system (themes, tokens, motion), and [current-state-review.md](./current-state-review.md) for the technical review.
 
 ## Design System
 
-The UI is a theme-driven **liquid glass** design system: token-based colors (Dark / Light / System themes), a shared glass recipe, and motion guidelines that animate only `transform` and `opacity` while respecting `prefers-reduced-motion`. See [design.md](./design.md) for the full reference — including how to change tokens and where the sidebar's mirrored theme tokens live.
+The UI is a theme-driven design system: token-based colors (Dark / Light / System themes), and motion guidelines that animate only `transform` and `opacity` while respecting `prefers-reduced-motion`. See [design.md](./design.md) for the full reference — including how to change tokens and where the sidebar's mirrored theme tokens live.
 
 ## Known Issues
 
