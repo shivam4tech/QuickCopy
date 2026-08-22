@@ -319,7 +319,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing[2], minWidth: 0 }}>
               <Logo size={18} />
               <span style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                Ekadanta
+                Pluk
               </span>
             </div>
 
@@ -505,7 +505,7 @@ export function Sidebar({ onClose, persistent = false }: SidebarProps) {
       ) : (
         <button
           onClick={() => handleExpand(true)}
-          title="Open Ekadanta"
+          title="Open Pluk"
           style={{
             position: 'fixed',
             right: 10,

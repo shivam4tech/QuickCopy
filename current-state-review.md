@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ekadanta is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language** (downloaded at runtime into IndexedDB).
+Pluk is a browser extension (MV3) that lets users select a region of any visible browser content (videos, images, PDFs, web pages) and copies the recognized text to clipboard — automatically formatted. It uses **Tesseract.js** as the primary OCR engine and **PP-OCRv5 (via @ocr-web/core + onnxruntime-web)** as a secondary code-optimized engine. Recognition supports **English plus one additional language** (downloaded at runtime into IndexedDB).
 
 **Version**: 1.2.0
 **Tech Stack**: TypeScript, React, Vite, CRXJS, Tesseract.js, onnxruntime-web

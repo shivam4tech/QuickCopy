@@ -1,13 +1,13 @@
-# Ekadanta — Chrome Web Store Submission Kit (v1.6.0)
+# Pluk — Chrome Web Store Submission Kit (v1.6.0)
 
 Everything you need to fill in the Chrome Web Store developer dashboard for
-**Ekadanta 1.6.0**.
+**Pluk 1.6.0**.
 
 ## Package
 
 | Item | File | Notes |
 | --- | --- | --- |
-| Upload package | `Ekadanta-chrome-1.6.0.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
+| Upload package | `Pluk-chrome-1.6.0.zip` | Built from `dist/` — ready to upload as-is. Manifest at zip root. Do not repackage. |
 | Store icon | `dist/icons/icon128.png` | 128×128 required. |
 | Privacy policy | `PRIVACY.md` | Push to the repo and host at a public URL (see below). |
 
@@ -31,7 +31,7 @@ Everything you need to fill in the Chrome Web Store developer dashboard for
 
 **Listing → Basic info**
 
-- **Name:** Ekadanta — Copy text you can't select
+- **Name:** Pluk — Copy text you can't select
 - **Summary (132 chars max):**
   ```
   Copy text from videos, images, PDFs and any visible browser content using OCR — drag to capture, text lands on your clipboard.
@@ -39,14 +39,14 @@ Everything you need to fill in the Chrome Web Store developer dashboard for
 - **Detailed description (markdown supported, max 16,000 chars):**
 
 ```markdown
-Ekadanta extracts text from anything visible on your screen — videos, images,
+Pluk extracts text from anything visible on your screen — videos, images,
 PDFs, and regular web pages — and copies it to your clipboard in one drag.
 
 ## How it works
 
 1. Hold **Alt+Shift** (Option+Shift on macOS; Ctrl/Cmd also supported) and drag
    over any region of the screen.
-2. Ekadanta OCRs the selected area with Tesseract.js and copies the text to
+2. Pluk OCRs the selected area with Tesseract.js and copies the text to
    your clipboard instantly.
 3. A floating panel shows the result so you can review, edit, or copy again —
    or use **Silent mode** to skip the panel and copy automatically.
@@ -58,21 +58,21 @@ left mouse button. **Alt+Shift+S** toggles the sidebar with your capture history
 
 - **Videos**: subtitles, code on a stream, slides in a talk — capture while playing.
 - **Images**: screenshots, memes, receipts, diagrams.
-- **PDFs**: open any https:// PDF and trigger capture — Ekadanta opens its own
+- **PDFs**: open any https:// PDF and trigger capture — Pluk opens its own
   PDF viewer with drag-to-copy. Text-layer pages are extracted exactly (no OCR);
   scanned pages automatically fall back to OCR.
 - **Any web page**: menus, error messages, tables, comparisons.
 
 ## Languages
 
-English always works out of the box. Add one more language — Ekadanta supports 123 languages in total (English + 122 more) — in the options page
+English always works out of the box. Add one more language — Pluk supports 123 languages in total (English + 122 more) — in the options page
 (settings download the language model from the project's public GitHub
 repository, cached locally) — swap or switch languages anytime without
 restarting the browser.
 
 ## Privacy first
 
-Ekadanta is fully offline: every capture, OCR pass, and clipboard write happens
+Pluk is fully offline: every capture, OCR pass, and clipboard write happens
 on your machine. Nothing is collected, stored, or transmitted. No accounts, no
 analytics, no tracking. See the privacy policy for details.
 
@@ -123,7 +123,7 @@ shot; keep UI crisp (1x scale, no browser zoom); PNG or JPG ≤ 2 MB each.
 
 ## Publishing flow
 
-1. **Package** → upload `Ekadanta-chrome-1.6.0.zip` (keep "Default" as the
+1. **Package** → upload `Pluk-chrome-1.6.0.zip` (keep "Default" as the
    only package; `_locales` not needed).
 2. **Privacy** → paste the privacy policy URL; answer questionnaire (No to all).
 3. **Distribution** → public; add a submitter note. Site access: choose

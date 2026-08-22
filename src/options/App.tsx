@@ -382,7 +382,7 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Appearance</h2>
-        <p style={styles.sectionDesc}>Choose how Ekadanta looks across the settings page, popup and capture panel.</p>
+        <p style={styles.sectionDesc}>Choose how Pluk looks across the settings page, popup and capture panel.</p>
         <Card>
           <CardBody>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
@@ -408,7 +408,7 @@ export function App() {
 
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Text Recognition</h2>
-        <p style={styles.sectionDesc}>How Ekadanta reads the text you select.</p>
+        <p style={styles.sectionDesc}>How Pluk reads the text you select.</p>
         <Card>
           <CardBody>
             <div style={styles.settingRow}>
@@ -437,7 +437,7 @@ export function App() {
                   <Tooltip text="Reading takes a little longer when an additional language is active." />
                 </div>
                 <div style={styles.settingDesc}>
-                  Ekadanta always reads English and supports 123 languages in total — add any one of the other 122.
+                  Pluk always reads English and supports 123 languages in total — add any one of the other 122.
                 </div>
               </div>
               <Select
@@ -582,7 +582,7 @@ export function App() {
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>About</h2>
         <p style={styles.sectionDesc}>
-          Ekadanta is free, open source, and private by design — it collects no data, ever.
+          Pluk is free, open source, and private by design — it collects no data, ever.
         </p>
         <Card>
           <CardBody>
@@ -621,7 +621,7 @@ export function App() {
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
               <div>
-                <div style={styles.settingLabel}>Enjoying Ekadanta?</div>
+                <div style={styles.settingLabel}>Enjoying Pluk?</div>
                 <div style={styles.settingDesc}>It is free and open source. A star helps more people find it.</div>
               </div>
               <a

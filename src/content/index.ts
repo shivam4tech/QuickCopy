@@ -367,7 +367,7 @@ const cleanupMessaging = browserMessaging.onMessage(async (message) => {
   switch (message.type) {
     case 'overlay:show': {
       if (!currentSettings.enabled) {
-        return { success: false, error: 'Ekadanta is paused' };
+        return { success: false, error: 'Pluk is paused' };
       }
       beginSelection();
       return { success: true };

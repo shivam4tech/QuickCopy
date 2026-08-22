@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Ekadanta — See it. Understand it. Copy it.",
+  "name": "Pluk",
   "version": "1.6.0",
-  "description": "See it. Understand it. Copy it. Extract text from any visible content — videos, images, PDFs and pages — with on-device OCR.",
+  "description": "Copy text from images, screenshots, videos, and PDFs in multiple languages.",
   "author": "helloquickcopy@gmail.com",
   "homepage_url": "https://github.com/shivam4tech/Ekadanta",
   "minimum_chrome_version": "109",
@@ -21,7 +21,7 @@
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "src/popup/index.html",
-    "default_title": "Ekadanta",
+    "default_title": "Pluk",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -58,7 +58,7 @@
         "default": "Alt+Shift+S",
         "mac": "Alt+Shift+S"
       },
-      "description": "Toggle Ekadanta sidebar"
+      "description": "Toggle Pluk sidebar"
     }
   },
   "icons": {

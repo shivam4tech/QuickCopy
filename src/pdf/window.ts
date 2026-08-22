@@ -463,7 +463,7 @@ async function main(): Promise<void> {
 
   const pdfUrl = new URLSearchParams(location.search).get('url');
   if (!pdfUrl) {
-    showError('Nothing to capture', 'Ekadanta could not determine which PDF to open. Re-trigger capture (Alt+Shift+Q on Chrome / Alt+Shift+C on Firefox) from the PDF tab.');
+    showError('Nothing to capture', 'Pluk could not determine which PDF to open. Re-trigger capture (Alt+Shift+Q on Chrome / Alt+Shift+C on Firefox) from the PDF tab.');
     return;
   }
 

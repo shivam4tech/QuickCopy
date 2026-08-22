@@ -1,17 +1,17 @@
-# Ekadanta
+# Pluk
 
-> **See it. Understand it. Copy it.** — select any visible region in your browser and Ekadanta OCRs it straight to your clipboard.
+> **Copy text from images, screenshots, videos, and PDFs in multiple languages.** — select any visible region in your browser and Pluk OCRs it straight to your clipboard.
 
-Ekadanta is a Manifest V3 browser extension that uses optical character recognition (Tesseract.js) to extract text from any visible region of a web page — videos, images, PDFs, and regular pages — then copies it straight to your clipboard.
+Pluk is a Manifest V3 browser extension that uses optical character recognition (Tesseract.js) to extract text from any visible region of a web page — videos, images, PDFs, and regular pages — then copies it straight to your clipboard.
 
 **v1.6.0** — stable and ready for everyday use on Chrome and Firefox. Ships a dedicated PDF window with drag-to-copy, a zoom-safe capture overlay, and dual-language recognition (English + one additional language).
 
-> **Privacy first**: Ekadanta does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/Ekadanta) goes a long way. ⭐
+> **Privacy first**: Pluk does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/Ekadanta) goes a long way. ⭐
 
 ## Features
 
 - **Drag-to-copy**: hold `Alt+Shift` (`Option+Shift` on macOS) and drag over any region to OCR it and copy the text automatically. The drag modifier is configurable in the options page — `Ctrl`/`Cmd` + drag is available too.
-- **Dedicated PDF window**: trigger the capture shortcut on a PDF tab to open Ekadanta's own PDF viewer. Scroll and navigate like a normal document; hold the drag modifier and draw a box to copy — pages with a text layer are extracted directly (no OCR), scanned pages fall back to OCR automatically.
+- **Dedicated PDF window**: trigger the capture shortcut on a PDF tab to open Pluk's own PDF viewer. Scroll and navigate like a normal document; hold the drag modifier and draw a box to copy — pages with a text layer are extracted directly (no OCR), scanned pages fall back to OCR automatically.
 - **Zoom-safe capture**: the drag box and results panel stay glued to the content even when you zoom the page in or out.
 - **Floating panel**: a compact panel shows the recognized text with **Copy** and **Edit** buttons; it closes on its own after a successful copy (configurable delay, or keep it open).
 - **Silent mode**: disable the panel and capture/copy entirely in the background (toggle in the options page).
@@ -26,11 +26,11 @@ Ekadanta is a Manifest V3 browser extension that uses optical character recognit
 
 ## Privacy
 
-Ekadanta is designed to be **private by default**:
+Pluk is designed to be **private by default**:
 
 - **No data collection.** No analytics, no telemetry, no tracking, no accounts — nothing is ever sent to a server.
 - **Everything runs locally.** Region selection, OCR, and clipboard writes all happen on your machine.
-- **Language files stay on your device.** Downloaded OCR languages are stored in your browser's local storage (IndexedDB) and never leave it. The only network requests Ekadanta ever makes are for downloading these language files when you choose to add one.
+- **Language files stay on your device.** Downloaded OCR languages are stored in your browser's local storage (IndexedDB) and never leave it. The only network requests Pluk ever makes are for downloading these language files when you choose to add one.
 - **Open source.** The entire codebase is MIT-licensed, so you can audit exactly what the extension does.
 
 ## Installation (unpacked)
@@ -51,7 +51,7 @@ Ekadanta is designed to be **private by default**:
 ## Usage
 
 1. Hold `Alt+Shift` (`Option+Shift` on macOS) — or your chosen drag modifier from **Settings → Capture Shortcut** — and drag with the **left mouse button** to draw a selection box around the text you want to copy.
-2. Release the mouse — Ekadanta captures the region, runs OCR, and copies the text automatically.
+2. Release the mouse — Pluk captures the region, runs OCR, and copies the text automatically.
 3. A panel appears with the result so you can review or edit it before copying again.
 4. The panel closes on its own after the chosen delay following a successful copy (or click **Edit** to keep it open).
 
@@ -64,7 +64,7 @@ To capture with the keyboard instead, press `Alt+Shift+Q` and drag with the **le
 ## PDFs
 
 1. Open a PDF in the browser (a `https://` PDF tab — local `file://` PDFs are not supported yet).
-2. Trigger capture (`Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox) while that tab is active — the Ekadanta PDF window opens with the document.
+2. Trigger capture (`Alt+Shift+Q` on Chrome / `Alt+Shift+C` on Firefox) while that tab is active — the Pluk PDF window opens with the document.
 3. Inside the window, hold the drag modifier and drag a box around the text you want — it is copied to your clipboard and the result panel shows it for review/editing.
 
 Notes:
@@ -74,10 +74,10 @@ Notes:
 
 ## Languages
 
-Ekadanta always reads English and supports **123 languages in total** — pick any one of the 122 additional languages to pair with it:
+Pluk always reads English and supports **123 languages in total** — pick any one of the 122 additional languages to pair with it:
 
 - Open the options page → **Downloaded Languages** → pick a language from the **Additional Language** dropdown in **Text Recognition**.
-- If the language isn't downloaded yet, Ekadanta shows its size and downloads it (with progress), then activates it automatically.
+- If the language isn't downloaded yet, Pluk shows its size and downloads it (with progress), then activates it automatically.
 - Downloaded languages are stored on this device. Use **Set as additional** to activate a downloaded language, or **Remove** to delete it. The **Storage used** line shows the total including English.
 - Reading takes slightly longer when an additional language is active.
 

@@ -1,6 +1,6 @@
 # PDF Support
 
-Ekadanta can copy text from PDFs opened in the browser. PDF support is an
+Pluk can copy text from PDFs opened in the browser. PDF support is an
 isolated, additive module — nothing in the existing capture pipeline, OCR
 engines, sidebar, clipboard, or formatting was modified to make it work.
 
@@ -15,8 +15,8 @@ native viewer is impossible:
 | Chrome | `chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html` | The PDF viewer is itself a *separate extension*. Content scripts cannot be injected into other extensions' pages (manifest match patterns don't cover `chrome-extension://`, and programmatic injection is refused). The old `postMessage`/embed tricks are dead in modern Chrome + MV3 CSP. |
 | Firefox | `resource://pdf.js/web/viewer.html` | Since Firefox 60 (2018) this is **intentionally** locked down (security fix for CVE-2018-5158; Mozilla Bugzilla 1454760, 1466072): *"the viewer becomes a privileged page that extensions cannot modify."* Content scripts cannot run on `resource://` pages. |
 
-Consequence: Ekadanta cannot render PDFs inside the browser's viewer, and it
-cannot reach the viewer's text layer. Instead, Ekadanta opens **its own
+Consequence: Pluk cannot render PDFs inside the browser's viewer, and it
+cannot reach the viewer's text layer. Instead, Pluk opens **its own
 capture window**, renders the PDF itself, and lets you drag over that
 rendering — the same drag → copy experience, over the document rather than
 inside the tab.
@@ -33,7 +33,7 @@ Background detects the PDF (src/pdf/PdfDetector.ts)
    • Firefox: tab.mimeType === 'application/pdf'
         │
         ▼
-Ekadanta popup window opens (src/pdf/PdfWindowManager.ts)
+Pluk popup window opens (src/pdf/PdfWindowManager.ts)
    • src/pdf/window.html — extension page, no permissions needed beyond <all_urls>
         │
         ▼
@@ -127,7 +127,7 @@ web pages.
   cross-site extension requests.
 - **PDFs whose URL has no `.pdf` suffix** are detected in Firefox via
   `mimeType`; in Chrome only the built-in viewer (any URL) is detected.
-- The drag happens in the Ekadanta window, not over the browser tab — a
+- The drag happens in the Pluk window, not over the browser tab — a
   hard browser restriction (see table above), not a design choice.
 
 ## Verification checklist (manual, browser)

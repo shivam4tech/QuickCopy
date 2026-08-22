@@ -1,8 +1,8 @@
 # Design System
 
-> Liquid-glass UI, theme-driven tokens, and motion guidelines for Ekadanta.
+> Liquid-glass UI, theme-driven tokens, and motion guidelines for Pluk.
 
-Ekadanta uses an Apple-inspired **liquid glass** aesthetic (with Raycast-style
+Pluk uses an Apple-inspired **liquid glass** aesthetic (with Raycast-style
 dark surfaces) across the options page, popup, and the in-page capture panel.
 Everything visual comes from theme tokens — there are no hardcoded colors
 in components.

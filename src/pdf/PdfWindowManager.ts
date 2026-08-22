@@ -1,7 +1,7 @@
 import { logger, getErrorMessage } from '@utils/logger';
 
 /**
- * Opens the Ekadanta PDF capture window for a tab, and keeps a single
+ * Opens the Pluk PDF capture window for a tab, and keeps a single
  * window per tab (re-opening focuses the existing window instead of
  * spawning duplicates).
  */
