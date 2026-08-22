@@ -1,5 +1,5 @@
 export const EXTENSION_NAME = 'Pluk';
-export const EXTENSION_VERSION = '1.5.2';
+export const EXTENSION_VERSION = '1.6.0';
 
 export const STORAGE_KEYS = {
   SETTINGS: 'ekadanta:settings',
