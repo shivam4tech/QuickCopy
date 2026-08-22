@@ -6,7 +6,7 @@ Pluk is a Manifest V3 browser extension that uses optical character recognition 
 
 **v1.6.0** — stable and ready for everyday use on Chrome and Firefox. Ships a dedicated PDF window with drag-to-copy, a zoom-safe capture overlay, and dual-language recognition (English + one additional language).
 
-> **Privacy first**: Pluk does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/Ekadanta) goes a long way. ⭐
+> **Privacy first**: Pluk does not collect any data. Every capture, OCR pass, and clipboard write happens locally on your machine — nothing is ever sent to a server. If you find it useful, a star on the [repository](https://github.com/shivam4tech/Pluk) goes a long way. ⭐
 
 ## Features
 

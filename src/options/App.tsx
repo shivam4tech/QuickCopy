@@ -611,12 +611,12 @@ export function App() {
                 <div style={styles.settingLabel}>Repository</div>
               </div>
               <a
-                href="https://github.com/shivam4tech/Ekadanta"
+                href="https://github.com/shivam4tech/Pluk"
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: colors.accent.primary, fontSize: fontSizes.sm }}
               >
-                github.com/shivam4tech/Ekadanta
+                github.com/shivam4tech/Pluk
               </a>
             </div>
             <div style={{ ...styles.settingRow, borderBottom: 'none' }}>
@@ -625,7 +625,7 @@ export function App() {
                 <div style={styles.settingDesc}>It is free and open source. A star helps more people find it.</div>
               </div>
               <a
-                href="https://github.com/shivam4tech/Ekadanta"
+                href="https://github.com/shivam4tech/Pluk"
                 target="_blank"
                 rel="noreferrer"
                 style={{

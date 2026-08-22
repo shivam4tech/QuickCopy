@@ -23,8 +23,8 @@ Everything you need to fill in the Chrome Web Store developer dashboard for
    becomes the contact shown to users on the store page.
 3. Host the privacy policy: push `PRIVACY.md` to the GitHub repo and either
    - enable GitHub Pages (Settings → Pages → deploy from branch, root), giving
-     `https://shivam4tech.github.io/Ekadanta/PRIVACY.html` style URL, or
-   - reference the raw file: `https://raw.githubusercontent.com/shivam4tech/Ekadanta/main/PRIVACY.md`.
+     `https://shivam4tech.github.io/Pluk/PRIVACY.html` style URL, or
+   - reference the raw file: `https://raw.githubusercontent.com/shivam4tech/Pluk/main/PRIVACY.md`.
    The dashboard will not let you submit without a privacy policy URL.
 
 ## Dashboard fields
@@ -81,7 +81,7 @@ analytics, no tracking. See the privacy policy for details.
 - Configurable drag modifier (Alt+Shift or Ctrl/Cmd)
 - Dark/light theme that follows your system
 - Adjustable panel auto-close delay and silent capture mode
-- Open-source: github.com/shivam4tech/Ekadanta
+- Open-source: github.com/shivam4tech/Pluk
 ```
 
 - **Category:** Productivity
@@ -117,7 +117,7 @@ shot; keep UI crisp (1x scale, no browser zoom); PNG or JPG ≤ 2 MB each.
 
 **Support**
 
-- Support URL: https://github.com/shivam4tech/Ekadanta/issues
+- Support URL: https://github.com/shivam4tech/Pluk/issues
 - Support email: helloquickcopy@gmail.com (verify once via the dashboard link;
   developer login stays shivam4devs@gmail.com)
 

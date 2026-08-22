@@ -4,7 +4,7 @@
   "version": "1.6.0",
   "description": "Copy text from images, screenshots, videos, and PDFs in multiple languages.",
   "author": "helloquickcopy@gmail.com",
-  "homepage_url": "https://github.com/shivam4tech/Ekadanta",
+  "homepage_url": "https://github.com/shivam4tech/Pluk",
   "minimum_chrome_version": "109",
   "permissions": [
     "storage",

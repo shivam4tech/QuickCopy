@@ -38,4 +38,4 @@ If this policy changes, the updated version will be published at the same URL wi
 
 ## Contact
 
-Questions or concerns: **helloquickcopy@gmail.com** — or open an issue at https://github.com/shivam4tech/Ekadanta/issues.
+Questions or concerns: **helloquickcopy@gmail.com** — or open an issue at https://github.com/shivam4tech/Pluk/issues.

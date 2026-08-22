@@ -10,7 +10,7 @@ const SIZES = [16, 32, 48, 128] as const;
 const STORE_SIZES = [128, 512] as const;
 const ICON_DIR = resolve(__dirname, '../public/icons');
 const STORE_DIR = resolve(__dirname, '../store-assets');
-const SOURCE = resolve(__dirname, '../assets/ekadanta.png');
+const SOURCE = resolve(__dirname, '../assets/pluk.png');
 
 // --- minimal PNG decode (RGB / RGBA, 8-bit, non-interlaced) -----------------
 

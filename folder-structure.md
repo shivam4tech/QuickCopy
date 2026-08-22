@@ -1,7 +1,7 @@
 # Folder Structure
 
 ```
-ekadanta/
+pluk/
 ├── package.json                         # Dependencies and scripts
 ├── tsconfig.json                        # TypeScript configuration
 ├── vite.config.ts                       # Vite build configuration with CRXJS
